@@ -1,0 +1,37 @@
+name: Python Scheduled Script
+
+on:
+  schedule:
+  - cron: "58 01 * * 0-6"
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Set Timezone
+        uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "Europe/Istanbul"
+      - name: Checkout repository content
+        uses: actions/checkout@v2 # Checkout the repo to github runner
+      - name: Setup Python Version
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.7
+      - name: Install Python dependencies
+        uses: py-actions/py-dependency-install@v2
+        with:
+          path: "requirements.txt"
+      - name: Pull data_pulling-transform-script
+        run: python data_pull_transform.py
+      - name: Commit files
+        run: |
+          git config --local user.name artkochnev
+          git config --local user.email "projects.akochnev@gmail.com"
+          git add --all
+          git commit -am "GH ACTION Headline $(date)"|
+          git push origin main
+        env:
+          REPO_KEY: ${{ secrets.GH_UPLOAD_TOKEN }}
+          username: github-actions

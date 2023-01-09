@@ -11,6 +11,9 @@ import ssl
 import plotly.express as px
 from GoogleNews import GoogleNews
 
+# LOGGING
+logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
+
 # SSL Error fix for IFW Kiel
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -28,17 +31,24 @@ DATA_SOURCES = 'data_sources.xlsx'
 
 # --- EMBEDDINGS
 UNHCR_APP = 'https://app.powerbi.com/view?r=eyJrIjoiZDBlM2EwOWMtMDk2Mi00ZDc4LTliYWUtZTNjMmNlN2ZmY2Y4IiwidCI6ImU1YzM3OTgxLTY2NjQtNDEzNC04YTBjLTY1NDNkMmFmODBiZSIsImMiOjh9'
+# How to embed: https://discuss.streamlit.io/t/powerbi-dashboards-and-streamlit/15323/3
+
+# --- YAHOO FINANCE TEST PARAMETERS
+INSTRUMENT_LIST = {
+    'code': ['UAH=X'],
+    'label': ['UAH/USD'],
+    'type': ['FX rate']
+}
 
 # --- UNLOCK FOR PRODUCTION
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', 150)
 
 # --- TEST FUNCTIONS
-def log_data_transform():
+def log_data_transform(output):
     now = datetime.now()
     current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    logging.info(f'Grain data stored: {current_time}')
-# How to embed: https://discuss.streamlit.io/t/powerbi-dashboards-and-streamlit/15323/3
+    logging.info(f'{output} stored successfully: {current_time}')
 
 # --- GOOGLE NEWS
 def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TARGET_FOLDER}/tf_google_news.csv'):
@@ -48,13 +58,7 @@ def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TA
     df = pd.DataFrame(news)
     df = df[['title', 'media', 'date', 'link']]
     df.to_csv(output, encoding = 'utf-16')
-
-# --- YAHOO FINANCE TEST PARAMETERS
-INSTRUMENT_LIST = {
-    'code': ['UAH=X'],
-    'label': ['UAH/USD'],
-    'type': ['FX rate']
-}
+    log_data_transform(output=output)
 
 # --- YAHOO FINANCE
 def get_yf_instrument(instrument, alias, type, start_date, end_date):
@@ -73,27 +77,32 @@ def get_yf_instrument(instrument, alias, type, start_date, end_date):
     except Exception as e:
         logging.warning("Unable to retrieve the currency pair {fx}", exc_info=True)   
 
-def get_yf_data(currency_list=INSTRUMENT_LIST, target = f'{TARGET_FOLDER}/tf_yf_data.csv', start_date = START_DATE, end_date = END_DATE):
+def get_yf_data(currency_list=INSTRUMENT_LIST, output = f'{TARGET_FOLDER}/tf_yf_data.csv', start_date = START_DATE, end_date = END_DATE):
     length = len(currency_list['code'])
     df = pd.DataFrame()
     for c in range(0,length):
         df_temp = get_yf_instrument(currency_list['code'][c], currency_list['label'][c], currency_list['type'][c], start_date, end_date)
         df = df.append(df_temp)   
-    df.to_csv(target, index=False, encoding = 'utf-16')
-    print('Financial data downloaded')
+    df.to_csv(output, index=False, encoding = 'utf-16')
+    log_data_transform(output=output)
 
 def plot_ccy_data(source = f'{TARGET_FOLDER}/tf_yf_data.csv', instrument = 'UAH/USD', title = 'FX rate'):
     df = pd.read_csv(source,  encoding = 'utf-16')
     df_plot = df[df['instrument']==instrument]
-    fig = px.area(df, x = df_plot.index, y = 'value',
-        title=title
+    fig = px.area(df, x = df_plot['date'], y = 'value',
+        title=title,
+        labels={
+            'x': 'Date',
+            'date': 'Date',
+            'value': instrument
+        }
     )
     return fig
 
 # --- MANUAL DATA
-def get_ua_data(link_data_sources = f'{TARGET_FOLDER}/{DATA_SOURCES}', target_folder = TARGET_FOLDER):
+def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLDER):
     # Parse list of data sources
-    df = pd.read_excel(link_data_sources)
+    df = pd.read_excel(source)
     #  Parse and store the files
     for ind in df.index:
         dactive = df['active'][ind]   
@@ -118,8 +127,8 @@ def get_ua_data(link_data_sources = f'{TARGET_FOLDER}/{DATA_SOURCES}', target_fo
             now = datetime.now()
             current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
             df_return['retrieved'] = current_time
-            df_return.to_csv(f'{target_folder}/src_{dfunction}.csv', index=False, encoding='utf-16')      
-            print(f"Data for {dfunction} retrieved at {current_time}") 
+            df_return.to_csv(f'{output}/src_{dfunction}.csv', index=False, encoding='utf-16')      
+            log_data_transform(dfunction) 
 
 # --- GRAIN FUNCTIONS
 def transform_grain_data(source = f'{TARGET_FOLDER}/src_grain_destinations.csv', output=f'{TARGET_FOLDER}/tf_grain_destinations.csv'):
@@ -130,7 +139,7 @@ def transform_grain_data(source = f'{TARGET_FOLDER}/src_grain_destinations.csv',
     df = df.reset_index()
     df.columns = ['Country', 'Income group', 'Tons received']
     df.to_csv(output, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -138,7 +147,7 @@ def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv')
         hover_data={'Tons received': ':.0f'},
         color_discrete_sequence=COLOR_SEQUENCE
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     return fig
 
 # --- HUMANITARIAN DATA
@@ -149,31 +158,33 @@ def transform_hum_data(source = f'{TARGET_FOLDER}/src_hum_data.csv', output=f'{T
     df.columns = ['People affected', 'Internally Displaced', 'Refugees', 'Civilian deaths, confirmed', 'Civilians injured, confirmed', 'Attacks on Education Facilities', 'Attacks on Health Care', 'Date']
     df = df.fillna(method='ffill')
     df.to_csv(output, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_hum_data(source=f'{TARGET_FOLDER}/tf_hum_data.csv', series = 'Refugees', title = 'Refugee count'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.area(df, y = series, x = 'Date', title = title)
+    fig.update_layout(xaxis={'visible': True, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
 # --- RECONSTRUCTION & DAMAGE & REGIONS
 def transform_reconstruction_sectors(source=f'{TARGET_FOLDER}/src_reconstruction_sectors.csv' ,  output=f'{TARGET_FOLDER}/tf_reconstruction_sectors.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     df.to_csv(output, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_reconstruction_sectors(source=f'{TARGET_FOLDER}/tf_reconstruction_sectors.csv', series = 'Damage', title = 'Damage assessment as of August 2022'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.treemap(df, path=[px.Constant("All"), 'Sector Type', 'Sector'], values=series,
         color_discrete_sequence=COLOR_SEQUENCE,
         title=title)
+    fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': False, 'showticklabels': True})
     return fig
 
 def transform_reconstruction_regions(source=f'{TARGET_FOLDER}/src_reconstruction_regions.csv' ,  output=f'{TARGET_FOLDER}/tf_reconstruction_regions.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     df = df[df['Oblast'].isin(['Support regions, subtotal','Backline regions, subtotal','Regions where government has regained control, subtotal'])!=True]
     df.to_csv(output, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regions.csv', title = 'Damage by regions as of August 2022'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -183,7 +194,8 @@ def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regio
         color_discrete_sequence=COLOR_SEQUENCE,
         title=title
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(legend=dict(orientation="h", y=-0.25))
     return fig
 
 # --- UKRAINE SUPPORT
@@ -195,7 +207,8 @@ def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  
         'Value committed (own estimate, in USD)',	
         'Value delivered (own estimate, in USD)',	
         'Converted Value in EUR',
-        'Total monetary value delivered in EUR']]
+        'Total monetary value delivered in EUR', 
+        'retrieved']]
     df = df.replace('.', np.nan)
     df['Value committed'] = df['Converted Value in EUR']
     df.loc[df['Value committed'].isna() == True, 'Value committed'] = df['Value committed (own estimate, in USD)']
@@ -206,34 +219,41 @@ def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  
     df = df[(df['Value delivered'] != 'No price')]
     df['Value committed'] = df['Value committed'].astype(float) / 10**9 #bn USD
     df['Value delivered'] = df['Value delivered'].astype(float) / 10**9 #bn USD
-    df = df.groupby(['countries', 'Type of Aid General']).agg({'Value committed':'sum','Value delivered':'sum'})
+    df = df.groupby(['countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'})
     df['Ratio: Delivered to committed'] = df['Value delivered']/df['Value committed']
     df = df.reset_index()
     df.to_csv(output, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', series = 'Value committed', title='Public commitment to support Ukraine (both cash and kind)'):
     df = pd.read_csv(source, encoding='utf-16')
+    as_of_date = df['retrieved'].iloc[0]
     fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General','countries'], values=series,
                 hover_data={series: ':.2f'},
                 color_discrete_sequence=COLOR_SEQUENCE,
-                title=title
+                title=f'{title} <br>As of {as_of_date}</br>'
             )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': False, 'showticklabels': True})
     return fig
 
-def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv'):
+def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title = 'Declared support and delivery rate, top 10 by commitment'):
     df = pd.read_csv(source, encoding='utf-16')
-    df = df.groupby(['countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
-    df['Ratio: Delivered to committed'] = df['Value delivered'] / df['Value committed']
-    fig = px.bar(df, y="countries", 
+    as_of_date = df['retrieved'].iloc[0]
+    df_plot = df.groupby(['countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
+    df_plot['Ratio: Delivered to committed'] = df_plot['Value delivered'] / df_plot['Value committed']
+    df_plot = df_plot.sort_values(by='Value committed', ascending=False)
+    df_plot = df_plot.iloc[:10,]
+    fig = px.bar(df_plot, y="countries", 
                     x="Value committed",
                     color='Ratio: Delivered to committed', 
                     orientation='h', 
                     text_auto='.2s',
                     hover_data={'Ratio: Delivered to committed': ':.1f'},
+                    title=f'{title}, USD bn <br>As of {as_of_date}</br>',
                     color_discrete_sequence=COLOR_SEQUENCE)
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(legend=dict(orientation="h"))
     return fig
 
 # --- FISCAL AND FINANCIAL DATA
@@ -266,7 +286,7 @@ def transform_fiscal_income(source=f'{TARGET_FOLDER}/src_fiscal_income.csv' ,  o
     df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_income')
     df = df.reset_index()
     df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_fiscal_income(source=f'{TARGET_FOLDER}/tf_fiscal_income.csv'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -277,7 +297,8 @@ def plot_fiscal_income(source=f'{TARGET_FOLDER}/tf_fiscal_income.csv'):
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"General Government Income as of {as_of_date}"
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
 def transform_fiscal_expenses(source=f'{TARGET_FOLDER}/src_fiscal_expenses.csv' ,  output=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv'):
@@ -285,7 +306,7 @@ def transform_fiscal_expenses(source=f'{TARGET_FOLDER}/src_fiscal_expenses.csv' 
     df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_expenses')
     df = df.reset_index()
     df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_fiscal_expenses(source=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -296,9 +317,8 @@ def plot_fiscal_expenses(source=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv'):
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"General Government Expenses {as_of_date}"
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, 
-        template = GRAPH_SCHEME, 
-        paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
 def transform_fiscal_finance(source=f'{TARGET_FOLDER}/src_fiscal_finance.csv' ,  output=f'{TARGET_FOLDER}/tf_fiscal_finance.csv'):
@@ -306,7 +326,7 @@ def transform_fiscal_finance(source=f'{TARGET_FOLDER}/src_fiscal_finance.csv' , 
     df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_finance')
     df = df.reset_index()
     df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_fiscal_finance(source=f'{TARGET_FOLDER}/tf_fiscal_finance.csv'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -317,28 +337,45 @@ def plot_fiscal_finance(source=f'{TARGET_FOLDER}/tf_fiscal_finance.csv'):
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"General Government Deficit Finance Source as of {as_of_date}"
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
-def transform_cpi_headline(source=f'{TARGET_FOLDER}/src_cpi_headline.csv' ,  output=f'{TARGET_FOLDER}/tf_cpi_headline.csv'):
+def transform_cpi_headline(source=f'{TARGET_FOLDER}/src_cpi_headline.csv' ,  output_last=f'{TARGET_FOLDER}/tf_cpi_last.csv', output_12m=f'{TARGET_FOLDER}/tf_cpi_12m.csv'):
     df = pd.read_csv(source, encoding='utf-16')
 
     # Add labels
     df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_cpi_headline')
     df = pd.concat([df, df_labels], axis=1)
-    
-    # Clean-up
     df = df.dropna(how='all', axis=1)
-    df = df.iloc[:,-4:]
-    df = df.dropna()
-    last_date = list(df)[0]
-    df['date'] = last_date[:11]
-    df.columns = ['Value', 'Retrieve date', 'Item', 'Total', 'Date']
-    df = df.reset_index()
-    df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform()
+    
+    # Export the last inflation
+    # Clean-up
+    df_last = df.iloc[:,-4:]
+    df_last = df_last.dropna()
+    last_date = list(df_last)[0]
+    df_last['date'] = last_date[:11]
+    df_last.columns = ['Value', 'Retrieve date', 'Item', 'Total', 'Date']
+    df_last = df_last.reset_index()
+    df_last.to_csv(output_last, index=False, encoding='utf-16')
+    log_data_transform(output_last)
 
-def plot_cpi_headline(source=f'{TARGET_FOLDER}/tf_cpi_headline.csv'):
+    # Export the 12m inflation
+    # Clean-up
+    select_label = 'Inflation, yoy'
+    df_12m = df.iloc[:,-15:]
+    df_12m = df_12m[df['column_name']==select_label]
+    retrieved = df_12m['retrieved'].iloc[0]
+    df_12m = df_12m.drop(['retrieved', 'total', 'column_name'], axis=1)
+    df_12m = df_12m.T
+    df_12m.columns = [select_label]
+    df_12m['Date'] = df_12m.index
+    df_12m['Retrieved'] = retrieved
+    df_12m = df_12m.reset_index()
+    df_12m.to_csv(output_12m, index=False, encoding='utf-16')
+    log_data_transform(output_12m)
+
+def plot_cpi_last(source=f'{TARGET_FOLDER}/tf_cpi_last.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
@@ -346,11 +383,25 @@ def plot_cpi_headline(source=f'{TARGET_FOLDER}/tf_cpi_headline.csv'):
         hover_data={'Value': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         color='Total',
-        title=f"Inflation by components as of {as_of_date}"
+        title=f"Inflation by components as of {as_of_date}",
+        labels={'Value': '%'}
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(showlegend=False)
-    fig.update_layout(paper_bgcolor="#f2f6fb")
+    fig.update_layout(xaxis={'visible': True, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
+    return fig
+
+def plot_cpi_12m(source=f'{TARGET_FOLDER}/tf_cpi_12m.csv', series = 'Inflation, yoy'):
+    df = pd.read_csv(source, encoding='utf-16')
+    as_of_date = df['Retrieved'][0]
+    fig = px.area(df, x = 'Date', y = series,
+        hover_data={series: ':.1f'},
+        title=f"{series}",
+        labels={series: '%'}
+    )
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(showlegend=False)
+    fig.update_layout(xaxis={'visible': True, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
 def transform_international_reserves(source=f'{TARGET_FOLDER}/src_international_reserves.csv' ,  output=f'{TARGET_FOLDER}/tf_international_reserves.csv'):
@@ -372,7 +423,7 @@ def transform_international_reserves(source=f'{TARGET_FOLDER}/src_international_
     reserves_total = df[df['Total']==True]['Value'].to_list()[0]
     df['Share'] = round(df['Value'] / reserves_total, 2)*100
     df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserves.csv', title = 'International reserves, bn USD'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -384,10 +435,10 @@ def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserv
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"{title} as of {as_of_date}"
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(showlegend=False)
+    fig.update_layout(xaxis={'visible': False, 'showticklabels': True})
     # fig.update_layout(template='plotly_white')
-    fig.update_layout(paper_bgcolor="#f2f6fb")
     return fig
 
 def transform_bond_yields(source=f'{TARGET_FOLDER}/src_bond_yields.csv' ,  output=f'{TARGET_FOLDER}/tf_bond_yields.csv'):
@@ -405,7 +456,7 @@ def transform_bond_yields(source=f'{TARGET_FOLDER}/src_bond_yields.csv' ,  outpu
     df = df.dropna(how='any', axis=0)
     df = df.reset_index()
     df.to_csv(output, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_bond_yields(source=f'{TARGET_FOLDER}/tf_bond_yields.csv', title = "Bond Placements and Yields in, UAH mn"):
     df = pd.read_csv(source, encoding='utf-16')
@@ -413,12 +464,15 @@ def plot_bond_yields(source=f'{TARGET_FOLDER}/tf_bond_yields.csv', title = "Bond
     fig = px.bar(df_plot, x = 'month', y='UAH: amount',
         color='UAH: weighted yield',
         hover_data={'UAH: amount': ':.1f'},
-        title=f"Bond Placements and Yields"
+        title=f"Bond Placements and Yields",
+        labels={'month': ''}
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
-    fig.update_layout(showlegend=False)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
+    fig.update_layout(coloraxis=dict(colorbar=dict(orientation='h', y=-1)))
+    # fig.update_coloraxes(colorbar_orientation="h")
+    # fig.update_layout(layout_coloraxis_showscale=False)
+    # fig.update_coloraxes(showscale=False)
     # fig.update_layout(template='plotly_white')
-    fig.update_layout(paper_bgcolor="#f2f6fb")
     return fig
 
 def transform_policy_rate(source=f'{TARGET_FOLDER}/src_policy_rate.csv' ,  output=f'{TARGET_FOLDER}/tf_policy_rate.csv'):
@@ -436,7 +490,7 @@ def transform_policy_rate(source=f'{TARGET_FOLDER}/src_policy_rate.csv' ,  outpu
     df = df.dropna(how='any', axis=0)
     df = df.reset_index()
     df.to_csv(output, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_policy_rate(source=f'{TARGET_FOLDER}/tf_policy_rate.csv', title = "Policy rate dynamics, %"):
     df = pd.read_csv(source, encoding='utf-16')
@@ -451,7 +505,6 @@ def plot_policy_rate(source=f'{TARGET_FOLDER}/tf_policy_rate.csv', title = "Poli
             hover_data={'Reference rate'},
             title=title
         ) 
-    fig.update_layout(paper_bgcolor="#f2f6fb")
     return fig
 
 def transform_interest_rates(source=f'{TARGET_FOLDER}/src_interest_rates.csv' ,  output=f'{TARGET_FOLDER}/tf_interest_rates.csv'):
@@ -478,17 +531,20 @@ def transform_interest_rates(source=f'{TARGET_FOLDER}/src_interest_rates.csv' , 
 
     #Export
     df.to_csv(output, encoding='utf-16', index=False)
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_interest_rates(source=f'{TARGET_FOLDER}/tf_interest_rates.csv'):
     df = pd.read_csv(source, encoding='utf-16')
-    fig = px.bar(df, x = 'Nationals: average', y='Region', orientation='h',
+    df_plot = df
+    as_of_date = df_plot['Retrieved on'].iloc[0]
+    df_plot.loc[df_plot['Region'] == 'Autonomous Republic of Crimea and the city of Sevastopol', 'Region'] = 'Crimea and Sevastopol' 
+    fig = px.bar(df_plot, x = 'Nationals: average', y='Region', orientation='h',
         text_auto='.2s',
         hover_data={'Nationals: average': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
-        title="Lending rates to national households and companies by region, in %"
+        title=f"Lending rates by region (only nationals), in % <br>As of {as_of_date}</br>"
     )
-    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     return fig
 
 def transform_financial_soundness(source=f'{TARGET_FOLDER}/src_financial_soundness.csv' ,  output=f'{TARGET_FOLDER}/tf_financial_soundness.csv'):
@@ -535,16 +591,20 @@ def transform_financial_soundness(source=f'{TARGET_FOLDER}/src_financial_soundne
     df['Retrieved'] = retrieved
     df = df.reset_index()
     df.to_csv(output, encoding='utf-16', index=False)
-    log_data_transform()
+    log_data_transform(output)
 
 def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv', series='Nonperforming loans to total gross loans'):
     df = pd.read_csv(source, encoding='utf-16', index_col='index')
     df_plot = df.iloc[-12:,]
     fig = px.area(df_plot, x = df_plot.index, y=series,
         hover_data={series: ':.1f'},
-        title=f"{series}, in %"
+        title=f"{series}, in %",
+        labels={
+            'index': 'Date Month',
+            'x': 'Date Month'
+            }
     )
-    fig.update_layout(template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(template = GRAPH_SCHEME)
     return fig
 
 # --- ACLED DATA WITH FATALITIES
@@ -573,7 +633,8 @@ def transform_fatalities(source = f'{TARGET_FOLDER}/src_fatalities.csv.gz', outp
     df_fatalities = df.groupby(['MONTH_DATE', 'ACTOR1', 'EVENT_TYPE'])['FATALITIES'].sum()
     df_fatalities = df.reset_index()
     df_fatalities.to_csv(output_fatalities, encoding='utf-16')
-    log_data_transform()
+    log_data_transform(output_geo)
+    log_data_transform(output_fatalities)
 
 def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', mapbox_token = TOKEN):
     df = pd.read_csv(source,  encoding = 'utf-16', compression = 'gzip')
@@ -587,9 +648,16 @@ def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', ma
         color="EVENT_TYPE", 
         size="SIZE",
         hover_data={'FATALITIES': ':.1f'},
-        color_continuous_scale=px.colors.cyclical.IceFire, 
+        labels={
+            "MONTH_DATE": "Month date",
+            "EVENT_TYPE": "Event type",
+            "FATALITIES": "Reported deaths",
+            "COUNT": "Number of conflict actions"
+        },
+        color_continuous_scale=px.colors.sequential.Sunsetdark, 
         size_max=50, 
         zoom=5)
+    fig.update_layout(legend=dict(orientation="h"))
     return fig
 
 def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv', series = 'FATALITIES', title = 'FATALITIES'):
@@ -601,35 +669,44 @@ def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv',
         y = series,
         color='EVENT_TYPE',
         hover_data={f'{series}': ':.0f'},
-        title=f"{title}"
+        title=f"{title} by month",
+        labels={
+            "MONTH_DATE": "Month date",
+            "EVENT_TYPE": "Event type",
+            "FATALITIES": "Reported deaths",
+            "COUNT": "Number of conflict actions"
+        },
     )
-    fig.update_layout(template = GRAPH_SCHEME, paper_bgcolor = BG_COLOR)
+    fig.update_layout(template = GRAPH_SCHEME)
+    fig.update_layout(xaxis={'visible': False, 'showticklabels': True})
+    fig.update_layout(legend=dict(orientation="h"))
     return fig
 
-# --- FUNCTIONAL TEST ---
-# Data retrieval
-get_ua_data()
-get_google_news()
-get_yf_data()
-get_fatalities()
+if __name__ == "__main__":
+    # Data retrieval
+    get_ua_data()
+    get_google_news()
+    get_yf_data()
+    get_fatalities()
+    print('All source data retrieved successfully')
 
-# Data transform
-transform_hum_data()
-transform_grain_data()
-transform_reconstruction_sectors()
-transform_reconstruction_regions()
-transform_support_data()
-transform_fiscal_income()
-transform_fiscal_expenses()
-transform_fiscal_finance()
-transform_cpi_headline()
-transform_international_reserves()
-transform_bond_yields()
-transform_policy_rate()
-transform_interest_rates()
-transform_financial_soundness()
-transform_fatalities()
-print('All data transformed successfully')
+    # Data transform
+    transform_hum_data()
+    transform_grain_data()
+    transform_reconstruction_sectors()
+    transform_reconstruction_regions()
+    transform_support_data()
+    transform_fiscal_income()
+    transform_fiscal_expenses()
+    transform_fiscal_finance()
+    transform_cpi_headline()
+    transform_international_reserves()
+    transform_bond_yields()
+    transform_policy_rate()
+    transform_interest_rates()
+    transform_financial_soundness()
+    transform_fatalities()
+    print('All data transformed successfully')
 
 # plot_ccy_data().show()
 # plot_hum_data(series = 'Refugees', title='Refugees').show()
@@ -651,6 +728,9 @@ print('All data transformed successfully')
 # plot_fatalities_series(series = 'FATALITIES', title = 'Number of Fatalities').show()
 # plot_fatalities_series(series='COUNT', title = 'Number of conflict events').show()
 # plot_fatalities_geo().show()
+# plot_grain_destinations().show()
+# plot_cpi_12m().show()
+# plot_cpi_last().show()
 
 # ToDos
 ### DATA

@@ -85,7 +85,6 @@ def get_yf_data(currency_list=INSTRUMENT_LIST, target = f'{TARGET_FOLDER}/tf_yf_
 def plot_ccy_data(source = f'{TARGET_FOLDER}/tf_yf_data.csv', instrument = 'UAH/USD', title = 'FX rate'):
     df = pd.read_csv(source,  encoding = 'utf-16')
     df_plot = df[df['instrument']==instrument]
-    print(df_plot)
     fig = px.area(df, x = df_plot.index, y = 'value',
         title=title
     )
@@ -372,7 +371,6 @@ def transform_international_reserves(source=f'{TARGET_FOLDER}/src_international_
     df['Value'] = pd.to_numeric(df['Value'], errors='coerce')/1000
     reserves_total = df[df['Total']==True]['Value'].to_list()[0]
     df['Share'] = round(df['Value'] / reserves_total, 2)*100
-    print(df)
     df.to_csv(output, index=False, encoding='utf-16')
     log_data_transform()
 
@@ -631,6 +629,7 @@ transform_policy_rate()
 transform_interest_rates()
 transform_financial_soundness()
 transform_fatalities()
+print('All data transformed successfully')
 
 # plot_ccy_data().show()
 # plot_hum_data(series = 'Refugees', title='Refugees').show()

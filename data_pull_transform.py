@@ -189,7 +189,7 @@ def transform_reconstruction_regions(source=f'{TARGET_FOLDER}/src_reconstruction
 def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regions.csv', title = 'Damage by regions as of August 2022'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.bar(df, x = 'Damage', y='Oblast', orientation='h', color = 'Oblast type',
-        text_auto='.2s',
+        # text_auto='.2s',
         hover_data={'Damage': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         title=title
@@ -248,7 +248,7 @@ def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title =
                     x="Value committed",
                     color='Ratio: Delivered to committed', 
                     orientation='h', 
-                    text_auto='.2s',
+                    # text_auto='.2s',
                     hover_data={'Ratio: Delivered to committed': ':.1f'},
                     title=f'{title}, USD bn <br>As of {as_of_date}</br>',
                     color_discrete_sequence=COLOR_SEQUENCE)
@@ -292,7 +292,7 @@ def plot_fiscal_income(source=f'{TARGET_FOLDER}/tf_fiscal_income.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        text_auto='.2s',
+        # text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"General Government Income as of {as_of_date}"
@@ -312,7 +312,7 @@ def plot_fiscal_expenses(source=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        text_auto='.2s',
+        # text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"General Government Expenses {as_of_date}"
@@ -332,7 +332,7 @@ def plot_fiscal_finance(source=f'{TARGET_FOLDER}/tf_fiscal_finance.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        text_auto='.2s',
+        # text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"General Government Deficit Finance Source as of {as_of_date}"
@@ -379,7 +379,7 @@ def plot_cpi_last(source=f'{TARGET_FOLDER}/tf_cpi_last.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        text_auto='.2s',
+        # text_auto='.2s',
         hover_data={'Value': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         color='Total',
@@ -430,7 +430,7 @@ def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserv
     as_of_date = df['Date'][0]
     df = df[df['Total']!=True]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        text_auto='.2s',
+        # text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"{title} as of {as_of_date}"
@@ -539,7 +539,7 @@ def plot_interest_rates(source=f'{TARGET_FOLDER}/tf_interest_rates.csv'):
     as_of_date = df_plot['Retrieved on'].iloc[0]
     df_plot.loc[df_plot['Region'] == 'Autonomous Republic of Crimea and the city of Sevastopol', 'Region'] = 'Crimea and Sevastopol' 
     fig = px.bar(df_plot, x = 'Nationals: average', y='Region', orientation='h',
-        text_auto='.2s',
+        # text_auto='.2s',
         hover_data={'Nationals: average': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         title=f"Lending rates by region (only nationals), in % <br>As of {as_of_date}</br>"

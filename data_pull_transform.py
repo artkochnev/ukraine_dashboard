@@ -608,8 +608,8 @@ def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv
     return fig
 
 # --- ACLED DATA WITH FATALITIES
-def get_fatalities(source = 'https://acleddata.com/download/38560/?tmstv=1673161723', output = f'{TARGET_FOLDER}/src_fatalities.csv.gz', sheet_name = 0):
-    df = pd.read_excel(source,  sheet_name=sheet_name, storage_options=STORAGE_OPTIONS)
+def get_fatalities(source = 'https://acleddata.com/download/38560/?tmstv=1673161723', output = f'{TARGET_FOLDER}/src_fatalities.csv.gz', sheet_name = 0, storage_options=STORAGE_OPTIONS):
+    df = pd.read_excel(source,  sheet_name=sheet_name, storage_options=storage_options)
     now = datetime.now()
     current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
     df['retrieved'] = current_time

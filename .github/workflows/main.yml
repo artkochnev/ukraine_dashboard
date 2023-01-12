@@ -27,6 +27,8 @@ jobs:
           path: "requirements.txt"
       - name: Pull data_pulling-transform-script
         run: python data_pull_transform.py
+      - name: Pull data_pulling-transform-script
+        run: python data_metrics.py
       - name: Commit files
         run: |
           git config --local user.email "actions@github.com"

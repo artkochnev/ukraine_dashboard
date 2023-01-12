@@ -12,7 +12,7 @@ import plotly.express as px
 from GoogleNews import GoogleNews
 
 # LOGGING
-logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
+logging.basicConfig(filename='data_pull.log', encoding='utf-8', level=logging.INFO)
 
 # SSL Error fix for IFW Kiel
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -596,14 +596,24 @@ def transform_financial_soundness(source=f'{TARGET_FOLDER}/src_financial_soundne
 def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv', series='Nonperforming loans to total gross loans'):
     df = pd.read_csv(source, encoding='utf-16', index_col='index')
     df_plot = df.iloc[-12:,]
-    fig = px.area(df_plot, x = df_plot.index, y=series,
-        hover_data={series: ':.1f'},
-        title=f"{series}, in %",
-        labels={
-            'index': 'Date Month',
-            'x': 'Date Month'
-            }
-    )
+    if series == 'Liquid assets6 to total assets':
+        fig = px.bar(df_plot, x = df_plot.index, y=series,
+            hover_data={series: ':.1f'},
+            title=f"{series}, in %",
+            labels={
+                'index': 'Date Month',
+                'x': 'Date Month'
+                }
+        )
+    else:
+        fig = px.area(df_plot, x = df_plot.index, y=series,
+            hover_data={series: ':.1f'},
+            title=f"{series}, in %",
+            labels={
+                'index': 'Date Month',
+                'x': 'Date Month'
+                }
+        )
     fig.update_layout(template = GRAPH_SCHEME)
     return fig
 

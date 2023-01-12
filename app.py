@@ -14,6 +14,8 @@ END_DATE = dp.END_DATE
 UNHCR_APP = dp.UNHCR_APP
 SOURCE_TEXTS = "assets/text.xlsx"
 
+logging.basicConfig(filename='app.log', encoding='utf-8', level=logging.INFO)
+
 def main():
     st.experimental_singleton.clear()
 
@@ -44,8 +46,6 @@ def main():
     fig_fatalities_count = dp.plot_fatalities_series(series = 'FATALITIES', title = 'Number of Fatalities')
     fig_battle_count = dp.plot_fatalities_series(series='COUNT', title = 'Number of conflict events')
     fig_fatalities_geo = dp.plot_fatalities_geo()
-
-    logging.info("CBR data pulled")
 
     # FINAL REPORT
     st.title('Humanitarian and Economic Situation in Ukraine')

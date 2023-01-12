@@ -25,11 +25,13 @@ jobs:
         uses: py-actions/py-dependency-install@v2
         with:
           path: "requirements.txt"
-      - name: Pull data_pulling-transform-script
+      - name: Pull data from data_pulling-transform-script
         env: 
           MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
         run: python data_pull_transform.py
-      - name: Pull data_pulling-transform-script
+      - name: Calculate metrics with data_metrics
+        env: 
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
         run: python data_metrics.py
       - name: Commit files
         run: |

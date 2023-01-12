@@ -10,6 +10,7 @@ import re
 import ssl
 import plotly.express as px
 from GoogleNews import GoogleNews
+import os
 
 # LOGGING
 logging.basicConfig(filename='data_pull.log', encoding='utf-8', level=logging.INFO)
@@ -25,7 +26,7 @@ GRAPH_SCHEME = 'ggplot2'
 COLOR_SEQUENCE = ['#c98b2d', '#152c44', '#919daa', '#931d1d', '#e9e8e4', '#5e6063', '#c1997c', '#e8cd90', '#3e74c4']
 ACLED_DATA = r'https://acleddata.com/download/38560/?tmstv=1673161723'
 STORAGE_OPTIONS = {'User-Agent': 'Mozilla/9.0'}
-TOKEN = 'pk.eyJ1IjoiYXJ0ZW0ta29jaG5ldiIsImEiOiJjbDBwczhhMmQyMjc3M2ltOXZteGxkeTRyIn0.jS7sRmqp68P5NZj6mkKazQ'
+TOKEN = os.environ['MAPBOX_TOKEN']
 TARGET_FOLDER = 'assets'
 DATA_SOURCES = 'data_sources.xlsx'
 

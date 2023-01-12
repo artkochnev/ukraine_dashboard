@@ -1,5 +1,4 @@
 from datetime import datetime, date, timedelta
-#import streamlit as st
 import zipfile
 from urllib.request import urlopen
 import pandas as pd
@@ -719,6 +718,7 @@ if __name__ == "__main__":
     transform_fatalities()
     print('All data transformed successfully')
 
+# For testing
 # plot_ccy_data().show()
 # plot_hum_data(series = 'Refugees', title='Refugees').show()
 # plot_hum_data(series = 'Internally Displaced', title='Internally Displaced').show()
@@ -742,20 +742,3 @@ if __name__ == "__main__":
 # plot_grain_destinations().show()
 # plot_cpi_12m().show()
 # plot_cpi_last().show()
-
-# ToDos
-### DATA
-# Fiscal income: reduce the number of items
-# Fiscal expenses: reduce the number of items
-# Fiscal finance: reduce the number of items
-### PLOTS
-# Refugee Plot: cut data before August (later correct for inconsistency)
-# IDP: OK, although bar chart might be more useful
-# Casualties: OK, might add a secondary with the Mariupol estimations
-# Civilians injured: as above, might add a correction for Mariupol
-# Damage: also good
-# Needs: very good
-# Regional damage good
-# Delivery rate: ratio delivered to committed: change to %
-# Add sources everywhere
-# Another idea: Commitment to GDP

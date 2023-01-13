@@ -13,13 +13,63 @@ START_DATE = dp.START_DATE
 END_DATE = dp.END_DATE
 UNHCR_APP = dp.UNHCR_APP
 SOURCE_TEXTS = "assets/text.xlsx"
+SOURCE_METRICS = "assets/metrics.csv"
 
 logging.basicConfig(filename='app.log', encoding='utf-8', level=logging.INFO)
+
+def read_texts(source = SOURCE_TEXTS, sheet_name = 0):
+    df = pd.read_excel(source, sheet_name=sheet_name)
+    logging.info('Loaded texts')
+    return df
+
+def read_metrics(source = SOURCE_METRICS):
+    df = pd.read_csv(source, encoding='utf-16')
+    logging.info('Loaded metrics')
+    return df
+
+def get_metric(df, title, value_col, title_col = 'Title', unit='default', digits = 0):
+    df = df
+    value = df[value_col][df[title_col]==title].iloc[0]
+    if unit == 'pct':
+        value = "{:.1%}".format(value)
+    elif unit == '%':
+        value = "{:.1f}".format(value)
+        value = f'{value}%'
+    elif unit == 'k':
+        value = "{:.1f}".format(value)
+        value = f'{value}k'
+    elif unit == 'mn':
+        value = "{:.1f}".format(value)
+        value = f'{value}mn'
+    elif unit == 'bn':
+        value = "{:.0f}".format(value)
+        value = f'{value}bn'
+    elif unit == 'default':
+        if digits == 0:
+            value = "{:.1f}".format(value)
+            value = f'{value}'
+        elif digits == 3:
+            value = value / (10**3)
+            value = "{:.1f}".format(value)
+            value = f'{value}k'
+        elif digits == 6:
+            value = value / (10**6)
+            value = "{:.1f}".format(value)
+            value = f'{value}mn'
+        elif digits == 9:
+            value = value / (10**9)
+            value = "{:.0f}".format(value)
+            value = f'{value}bn'
+    return value
 
 def main():
     st.experimental_singleton.clear()
 
-    # DATA AND FIGURES
+    # --- LOAD DATA
+    df_t = read_texts()
+    df_m = read_metrics()
+
+    # --- LOAD FIGURES
     fig_ccy = dp.plot_ccy_data()
     fig_refugees = dp.plot_hum_data(series = 'Refugees', title='Refugees')
     fig_idps = dp.plot_hum_data(series = 'Internally Displaced', title='Internally Displaced')
@@ -49,42 +99,185 @@ def main():
 
     # FINAL REPORT
     st.title('Humanitarian and Economic Situation in Ukraine')
-    
+    st.header('Key indicators')
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        "Fatalities, estimated", 
+        value = get_metric(df_m, 'Fatalities count', 'Last value', digits=3),
+        )
+    m2.metric(
+        "Refugees", 
+        value = get_metric(df_m, 'Refugees', 'Last value', digits=6),
+        delta = get_metric(df_m, 'Refugees', 'Change', digits=6),
+        delta_color = 'inverse' 
+        )
+    m3.metric(
+        "Internally displaced", 
+        value = get_metric(df_m, 'Internally displaced', 'Last value', digits=6),
+        delta = get_metric(df_m, 'Internally displaced', 'Change', digits=6),
+        delta_color = 'inverse' 
+        )
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        "Reconstruction needs 08/2022, estimated", 
+        value = get_metric(df_m, 'Reconstruction needs', 'Last value', unit='bn'),
+        )
+    m2.metric(
+        "Support delivered to Ukraine, USD bn", 
+        value = get_metric(df_m, 'Delivered', 'Last value', unit='bn'),
+        )
+    m3.metric(
+        "UA International Reserves, USD bn", 
+        value = get_metric(df_m, 'International Reserves', 'Last value', unit='bn'),
+        delta = get_metric(df_m, 'International Reserves', 'Change', unit='bn'),
+        delta_color = 'off' 
+        )
+    st.markdown('---')
     st.header("War and People")
     # Put key metrics
     st.subheader('Conflict intensity')
-    col1, col2 = st.columns(2)
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        "Violence events", 
+        value = get_metric(df_m, 'Violence events', 'Last value', digits=3),
+        )
+    m2.metric(
+        "Explosions count", 
+        value = get_metric(df_m, 'Explosions count', 'Last value', digits=3),
+        )
+    m3.metric(
+        "Battle count", 
+        value = get_metric(df_m, 'Battle count', 'Last value', digits=3),
+        )
     st.plotly_chart(fig_fatalities_geo, use_container_height=800)
+    col1, col2 = st.columns(2)
     col1.plotly_chart(fig_fatalities_count, use_container_height=600, use_container_width=300)
     col2.plotly_chart(fig_battle_count, use_container_height=600, use_container_width=300)
+    st.markdown('---')
+    st.subheader('Civilian casualties')
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        "Fatalities, estimated", 
+        value = get_metric(df_m, 'Fatalities count', 'Last value', digits=3),
+        )
+    m2.metric(
+        "Civilians killed, confirmed", 
+        value = get_metric(df_m, 'Civilians killed, confirmed', 'Last value', digits=3),
+        delta = get_metric(df_m, 'Civilians killed, confirmed', 'Change', digits=3),
+        delta_color = 'inverse' 
+        )
+    m3.metric(
+        "Civilians injured, confirmed", 
+        value = get_metric(df_m, 'Civilians injured, confirmed', 'Last value', digits=3),
+        delta = get_metric(df_m, 'Civilians injured, confirmed', 'Change', digits=3),
+        delta_color = 'inverse' 
+        )
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_civs_dead, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_civs_injured, use_container_height=400, use_container_width=300)
+    st.markdown('---')
     st.subheader('Displacement')
+    m1, m2 = st.columns(2)
+    m1.metric(
+        "Refugees", 
+        value = get_metric(df_m, 'Refugees', 'Last value', digits=6),
+        delta = get_metric(df_m, 'Refugees', 'Change', digits=6),
+        delta_color = 'inverse' 
+        )
+    m2.metric(
+        "Internally displaced", 
+        value = get_metric(df_m, 'Internally displaced', 'Last value', digits=6),
+        delta = get_metric(df_m, 'Internally displaced', 'Change', digits=6),
+        delta_color = 'inverse' 
+        )    
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_idps, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_refugees, use_container_height=400, use_container_width=300)
-    st.markdown('**Distribution of Refugees**')
+    st.subheader('Distribution of Refugees')
     st.components.v1.iframe(UNHCR_APP, width=800, height=800, scrolling=True)
-
+    st.markdown('---')
     st.header("War and Economics")
     # Put key metrics
     st.subheader('Monetary sector')
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric(
+        "Inflation, yoy", 
+        value = get_metric(df_m, 'Inflation rate', 'Last value', unit='%'),
+        delta = get_metric(df_m, 'Inflation rate', 'Change', unit='%'),
+        delta_color = 'inverse' 
+        )
+    m2.metric(
+        "Lending rate, households", 
+        value = get_metric(df_m, 'Lending rate, households', 'Last value', unit='%'),
+        )
+    m3.metric(
+        "Lending rate, corporates", 
+        value = get_metric(df_m, 'Lending rate, corporates', 'Last value', unit='%'),
+        )
+    m4.metric(
+        "FX rate: UAH/USD", 
+        value = get_metric(df_m, 'FX rate: UAH/USD', 'Last value'),
+        delta = get_metric(df_m, 'FX rate: UAH/USD', 'Change'),
+        delta_color = 'inverse',
+        )
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_cpi_12m, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_ccy, use_container_height=400, use_container_width=300)
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_cpi_last, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_interest_rates, use_container_height=400, use_container_width=300)
+    st.markdown('---')
     st.subheader('National bank tools')
+    m1, m2 = st.columns(2)
+    m1.metric(
+        "Key rate", 
+        value = get_metric(df_m, 'Key rate', 'Last value', unit='%'),
+        )    
+    m2.metric(
+        "International reserves, USD", 
+        value = get_metric(df_m, 'International Reserves', 'Last value', unit='bn'),
+        )
     col1, col2 = st.columns(2)    
     col1.plotly_chart(fig_policy_rates, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_international_reserves, use_container_height=400, use_container_width=300)
     st.subheader('Financial system')
+    m1, m2 = st.columns(2)
+    m1.metric(
+        "NPL ratio", 
+        value = get_metric(df_m, 'NPL ratio', 'Last value', unit='%'),
+        delta = get_metric(df_m, 'NPL ratio', 'Change', unit='%'),
+        delta_color = 'inverse',
+        )    
+    m2.metric(
+        "Liquid asset ratio", 
+        value = get_metric(df_m, 'Liquid asset ratio', 'Last value', unit='%'),
+        delta = get_metric(df_m, 'Liquid asset ratio', 'Change', unit='%'),
+        delta_color='normal'
+        )
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_fsi_npl, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_fsi_liquidity, use_container_height=400, use_container_width=300)
+    st.markdown('---')
     st.subheader('Government finance')
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric(
+        "Yield, UAH govt, bonds", 
+        value = get_metric(df_m, 'Yield, UAH govt bonds', 'Last value', unit='%'),
+        delta = get_metric(df_m, 'Yield, UAH govt bonds', 'Change', unit='%'),
+        delta_color = 'inverse',
+        )    
+    m2.metric(
+        "Fiscal income, UAH", 
+        value = get_metric(df_m, 'Fiscal income, total', 'Last value', digits=6) + 'tn',
+        )
+    m3.metric(
+        "Fiscal expenses, UAH", 
+        value = get_metric(df_m, 'Fiscal expenses, total', 'Last value', digits=6) + 'tn',
+        )
+    m4.metric(
+        "Domestic finance to deficit", 
+        value = get_metric(df_m, 'Fiscal finance, total', 'Last value', unit='pct'),
+        )
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_fiscal_income, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_fiscal_expenses, use_container_height=400, use_container_width=300)
@@ -105,11 +298,6 @@ def main():
     st.plotly_chart(fig_reconstruction_needs)    
 
     #st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary_short_effects'))
-    #  cmet11, cmet12 = st.columns(2)
-    #cmet11.metric("Refugees, mn people", round(df_unhcr_casualties['Refugees']/10**6,1))
-    #cmet21.metric("IDPs, mn people", round(df_unhcr_casualties['IDPs']/10**6,1))
-    #fp.plot_figure(intro_fig1.plotly_chart(fig_unhcr_casualties, height = 400, width = 400))
-    # st.markdown('---')
     # fp.plot_figure(components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/", height=800, scrolling=True))
     # fx_select = st.selectbox(
     #     'Choose a currency pair',

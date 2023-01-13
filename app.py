@@ -27,7 +27,7 @@ def read_metrics(source = SOURCE_METRICS):
     logging.info('Loaded metrics')
     return df
 
-def get_metric(df, title, value_col, title_col = 'Title', unit='default', digits = 0):
+def get_metric(df, title, value_col, title_col = 'Title', unit='default', digits = 0, digits_unit = 'default'):
     df = df
     value = df[value_col][df[title_col]==title].iloc[0]
     if unit == 'pct':
@@ -47,19 +47,31 @@ def get_metric(df, title, value_col, title_col = 'Title', unit='default', digits
     elif unit == 'default':
         if digits == 0:
             value = "{:.1f}".format(value)
-            value = f'{value}'
+            if digits_unit == 'default':
+                value = f'{value}'
+            else:
+                value = f'{value}{digits_unit}'
         elif digits == 3:
             value = value / (10**3)
             value = "{:.1f}".format(value)
-            value = f'{value}k'
+            if digits_unit == 'default':
+                value = f'{value}k'
+            else:
+                value = f'{value}{digits_unit}'
         elif digits == 6:
             value = value / (10**6)
             value = "{:.1f}".format(value)
-            value = f'{value}mn'
+            if digits_unit == 'default':
+                value = f'{value}mn'
+            else:
+                value = f'{value}{digits_unit}'
         elif digits == 9:
             value = value / (10**9)
             value = "{:.0f}".format(value)
-            value = f'{value}bn'
+            if digits_unit == 'default':
+                value = f'{value}'
+            else:
+                value = f'{value}{digits_unit}bn'
     return value
 
 def main():
@@ -268,11 +280,11 @@ def main():
         )    
     m2.metric(
         "Fiscal income, UAH", 
-        value = get_metric(df_m, 'Fiscal income, total', 'Last value', digits=6) + 'tn',
+        value = get_metric(df_m, 'Fiscal income, total', 'Last value', digits=6, digits_unit='tn'),
         )
     m3.metric(
         "Fiscal expenses, UAH", 
-        value = get_metric(df_m, 'Fiscal expenses, total', 'Last value', digits=6) + 'tn',
+        value = get_metric(df_m, 'Fiscal expenses, total', 'Last value', digits=6, digits_unit='tn'),
         )
     m4.metric(
         "Domestic finance to deficit", 

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -14,6 +14,7 @@ END_DATE = dp.END_DATE
 UNHCR_APP = dp.UNHCR_APP
 SOURCE_TEXTS = "assets/text.xlsx"
 SOURCE_METRICS = "assets/metrics.csv"
+SOURCE_NEWS = "assets/tf_google_news.csv"
 
 logging.basicConfig(filename='app.log', encoding='utf-8', level=logging.INFO)
 
@@ -22,9 +23,22 @@ def read_texts(source = SOURCE_TEXTS, sheet_name = 0):
     logging.info('Loaded texts')
     return df
 
+def write_expander(df, title='summary_short_effects', title_col='title', text_col = 'text', expander_title='Explainer'):
+    text = df[text_col][df[title_col]==title].iloc[0]
+    with st.expander(expander_title):
+        st.write(text)
+
 def read_metrics(source = SOURCE_METRICS):
     df = pd.read_csv(source, encoding='utf-16')
     logging.info('Loaded metrics')
+    return df
+
+def read_news(source = SOURCE_NEWS):
+    df = pd.read_csv(source, encoding='utf-16', index_col=False)
+    df = df[:5]
+    df = df.to_html(escape=False, index=False, render_links=True, justify='justify')
+    df = df.replace('border="1"','border="0"')
+    logging.info('Loaded news')
     return df
 
 def get_metric(df, title, value_col, title_col = 'Title', unit='default', digits = 0, digits_unit = 'default'):
@@ -80,6 +94,10 @@ def main():
     # --- LOAD DATA
     df_t = read_texts()
     df_m = read_metrics()
+    df_news = read_news()
+
+    # --- LOAD TABLES
+    # tab_google_news = dp.plot_google_news(df_news)
 
     # --- LOAD FIGURES
     fig_ccy = dp.plot_ccy_data()
@@ -131,7 +149,7 @@ def main():
         )
     m1, m2, m3 = st.columns(3)
     m1.metric(
-        "Reconstruction needs 08/2022, estimated", 
+        "Reconstruction needs estimated, USD", 
         value = get_metric(df_m, 'Reconstruction needs', 'Last value', unit='bn'),
         )
     m2.metric(
@@ -141,10 +159,14 @@ def main():
     m3.metric(
         "UA International Reserves, USD bn", 
         value = get_metric(df_m, 'International Reserves', 'Last value', unit='bn'),
-        delta = get_metric(df_m, 'International Reserves', 'Change', unit='bn'),
-        delta_color = 'off' 
         )
+    write_expander(df_t,title='summary_short_effects', expander_title='Summary')
     st.markdown('---')
+    st.subheader('Latest news')
+    st.markdown('**Source: Google News**')
+    st.markdown(df_news, unsafe_allow_html=True)
+    st.write('')
+    st.write('')
     st.header("War and People")
     # Put key metrics
     st.subheader('Conflict intensity')
@@ -252,6 +274,7 @@ def main():
     col1, col2 = st.columns(2)    
     col1.plotly_chart(fig_policy_rates, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_international_reserves, use_container_height=400, use_container_width=300)
+    st.markdown('---')
     st.subheader('Financial system')
     m1, m2 = st.columns(2)
     m1.metric(
@@ -287,7 +310,7 @@ def main():
         value = get_metric(df_m, 'Fiscal expenses, total', 'Last value', digits=6, digits_unit='tn'),
         )
     m4.metric(
-        "Domestic finance to deficit", 
+        "Domestic finance of deficit", 
         value = get_metric(df_m, 'Fiscal finance, total', 'Last value', unit='pct'),
         )
     col1, col2 = st.columns(2)
@@ -298,17 +321,55 @@ def main():
     col2.plotly_chart(fig_bond_yields, use_container_height=400, use_container_width=450)
 
     st.header('War and cooperation')
+    st.subheader('Ukraine support')
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        "Support announced, USD",
+        value = get_metric(df_m, 'Commitment', 'Last value', unit='bn')
+    )
+    m2.metric(
+        "Support delivered, USD",
+        value = get_metric(df_m, 'Delivered', 'Last value', unit='bn')
+    )
+    m3.metric(
+        "Military support sent, USD",
+        value = get_metric(df_m, 'Delivered military help', 'Last value', unit='bn')
+    )
 #   st.plotly_chart(fig_ukraine_support_committed, use_container_height=800, use_container_width=800)
     st.plotly_chart(fig_ukraine_support_delivered, use_container_height=800, use_container_width=300)
     st.plotly_chart(fig_delivery_rate)
+    st.markdown('---')
+    st.subheader('Grain deal')
+    m1, m2 = st.columns(2)
+    m1.metric(
+        'Grain sent (all), tons',
+        value = get_metric(df_m, 'Total amount delivered', 'Last value', digits=6)
+    )
+    m2.metric(
+        'Grain sent (high-income) countries, tons',
+        value = get_metric(df_m, 'Amount to high-income countries', 'Last value', digits=6)
+    )
     st.plotly_chart(fig_grain_destinations)
-
+    st.markdown('---')
     st.header('War and reconstruction')
     # Put key metrics
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        "Damage estimated, USD", 
+        value = get_metric(df_m, 'Damage caused', 'Last value', unit='bn'),
+        )
+    m2.metric(
+        "Reconstruction needs estimated, USD", 
+        value = get_metric(df_m, 'Reconstruction needs', 'Last value', unit='bn'),
+        )
+    m3.metric(
+        "Ukraine GDP (2021), current USD", 
+        value = get_metric(df_m, 'GDP Ukraine, current USD', 'Last value', unit='bn'),
+        )
     st.plotly_chart(fig_reconstruction_damage)
     st.plotly_chart(fig_reconstruction_regions, use_container_height=800)
     st.plotly_chart(fig_reconstruction_needs)    
-
+    st.markdown('___')
     #st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary_short_effects'))
     # fp.plot_figure(components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/", height=800, scrolling=True))
     # fx_select = st.selectbox(

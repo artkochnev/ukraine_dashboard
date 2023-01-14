@@ -10,6 +10,7 @@ import ssl
 import plotly.express as px
 from GoogleNews import GoogleNews
 import os
+import plotly.graph_objects as go
 
 # LOGGING
 logging.basicConfig(filename='data_pull.log', encoding='utf-8', level=logging.INFO)
@@ -51,14 +52,45 @@ def log_data_transform(output):
     logging.info(f'{output} stored successfully: {current_time}')
 
 # --- GOOGLE NEWS
+def convert_to_link(link, cover_text='Link'):
+    return f'<a href="{link}">{cover_text}</a>'
+
 def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TARGET_FOLDER}/tf_google_news.csv'):
     googlenews = GoogleNews(lang=lang, region=region)
     news = googlenews.get_news(search_topic)
     news = googlenews.results()
     df = pd.DataFrame(news)
     df = df[['title', 'media', 'date', 'link']]
-    df.to_csv(output, encoding = 'utf-16')
+    df.columns = ['Title', 'Media', 'Date', 'Link']
+    df['Link'] = df['Link'].apply(convert_to_link)
+    df.to_csv(output, encoding = 'utf-16', index=False)
     log_data_transform(output=output)
+
+def plot_google_news(df = pd.DataFrame):
+    tab = go.Figure(data=[go.Table(
+    header=dict(values=list(df.columns),
+                #fill_color='paleturquoise',
+                align='left'
+                ),
+    cells=dict(values=[df.Title, df.Media, df.Date, df.Link],
+               #fill_color='lavender',
+               align='left'
+               ))
+    ])
+    tab.update_layout(height=400)
+    return tab
+
+# --- GDP World Bank
+def get_gdp_ua(source='https://api.db.nomics.world/v22/series/WB/WDI/A-NY.GDP.MKTP.CD-UKR.csv', outout=f'{TARGET_FOLDER}/tf_gdp_ua.csv'):
+    df = pd.read_csv(source)
+    df.columns = ['Year', 'Value']
+    df['Value'] = df['Value']/(10**9)
+    df['Series'] = 'Annual GDP, current USD bn'
+    now = datetime.now()
+    current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+    df['Retrieved on'] = current_time
+    df.to_csv(outout, encoding='utf-16')
+    return df
 
 # --- YAHOO FINANCE
 def get_yf_instrument(instrument, alias, type, start_date, end_date):
@@ -86,11 +118,11 @@ def get_yf_data(currency_list=INSTRUMENT_LIST, output = f'{TARGET_FOLDER}/tf_yf_
     df.to_csv(output, index=False, encoding = 'utf-16')
     log_data_transform(output=output)
 
-def plot_ccy_data(source = f'{TARGET_FOLDER}/tf_yf_data.csv', instrument = 'UAH/USD', title = 'FX rate'):
+def plot_ccy_data(source = f'{TARGET_FOLDER}/tf_yf_data.csv', instrument = 'UAH/USD', title = 'FX rate', retrieved_from='Yahoo Finance'):
     df = pd.read_csv(source,  encoding = 'utf-16')
     df_plot = df[df['instrument']==instrument]
     fig = px.area(df, x = df_plot['date'], y = 'value',
-        title=title,
+        title=f'{title} <br>Source: {retrieved_from}</br>',
         labels={
             'x': 'Date',
             'date': 'Date',
@@ -141,11 +173,13 @@ def transform_grain_data(source = f'{TARGET_FOLDER}/src_grain_destinations.csv',
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv'):
+def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv', title ='Grain delivered under grain deal', retrieved_from='WFO|HDX'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.bar(df, x = 'Tons received', y='Income group', color = 'Country', orientation='h',
         hover_data={'Tons received': ':.0f'},
-        color_discrete_sequence=COLOR_SEQUENCE
+        text_auto='.2s',
+        color_discrete_sequence=COLOR_SEQUENCE,
+        title=f'{title} <br>Source: {retrieved_from}</br>',
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     return fig
@@ -160,9 +194,9 @@ def transform_hum_data(source = f'{TARGET_FOLDER}/src_hum_data.csv', output=f'{T
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_hum_data(source=f'{TARGET_FOLDER}/tf_hum_data.csv', series = 'Refugees', title = 'Refugee count'):
+def plot_hum_data(source=f'{TARGET_FOLDER}/tf_hum_data.csv', series = 'Refugees', title = 'Refugee count', retrieved_from='UNHCR|HDX'):
     df = pd.read_csv(source, encoding='utf-16')
-    fig = px.area(df, y = series, x = 'Date', title = title)
+    fig = px.area(df, y = series, x = 'Date', title=f'{title} <br>Source: {retrieved_from}</br>',)
     fig.update_layout(xaxis={'visible': True, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
@@ -172,11 +206,11 @@ def transform_reconstruction_sectors(source=f'{TARGET_FOLDER}/src_reconstruction
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_reconstruction_sectors(source=f'{TARGET_FOLDER}/tf_reconstruction_sectors.csv', series = 'Damage', title = 'Damage assessment as of August 2022'):
+def plot_reconstruction_sectors(source=f'{TARGET_FOLDER}/tf_reconstruction_sectors.csv', series = 'Damage', title = 'Damage assessment as of August 2022', retrieved_from='World Bank (2022)'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.treemap(df, path=[px.Constant("All"), 'Sector Type', 'Sector'], values=series,
         color_discrete_sequence=COLOR_SEQUENCE,
-        title=title)
+        title=f'{title} <br>Source: {retrieved_from}</br>')
     fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': False, 'showticklabels': True})
     return fig
 
@@ -186,13 +220,13 @@ def transform_reconstruction_regions(source=f'{TARGET_FOLDER}/src_reconstruction
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regions.csv', title = 'Damage by regions as of August 2022'):
+def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regions.csv', title = 'Damage by regions as of August 2022', retrieved_from='World Bank (2022)'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.bar(df, x = 'Damage', y='Oblast', orientation='h', color = 'Oblast type',
-        # text_auto='.2s',
+        text_auto='.2s',
         hover_data={'Damage': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
-        title=title
+        title=f'{title} <br>Source: {retrieved_from}</br>',
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(legend=dict(orientation="h", y=-0.25))
@@ -225,19 +259,19 @@ def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', series = 'Value committed', title='Public commitment to support Ukraine (both cash and kind)'):
+def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', series = 'Value committed', title='Public commitment to support Ukraine (both cash and kind)', retrieved_from='IFW Kiel'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['retrieved'].iloc[0]
     fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General','countries'], values=series,
                 hover_data={series: ':.2f'},
                 color_discrete_sequence=COLOR_SEQUENCE,
-                title=f'{title} <br>As of {as_of_date}</br>'
+                title=f'{title} USDbn <br>Source: {retrieved_from}</br>'
             )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': False, 'showticklabels': True})
     return fig
 
-def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title = 'Declared support and delivery rate, top 10 by commitment'):
+def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title = 'Declared support and delivery rate, top 10 by commitment', retrieved_from='IFW Kiel'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['retrieved'].iloc[0]
     df_plot = df.groupby(['countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
@@ -248,9 +282,9 @@ def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title =
                     x="Value committed",
                     color='Ratio: Delivered to committed', 
                     orientation='h', 
-                    # text_auto='.2s',
+                    text_auto='.2s',
                     hover_data={'Ratio: Delivered to committed': ':.1f'},
-                    title=f'{title}, USD bn <br>As of {as_of_date}</br>',
+                    title=f'{title} USDbn <br>Source: {retrieved_from}</br>',
                     color_discrete_sequence=COLOR_SEQUENCE)
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(legend=dict(orientation="h"))
@@ -288,14 +322,14 @@ def transform_fiscal_income(source=f'{TARGET_FOLDER}/src_fiscal_income.csv' ,  o
     df.to_csv(output, index=False, encoding='utf-16')
     log_data_transform(output)
 
-def plot_fiscal_income(source=f'{TARGET_FOLDER}/tf_fiscal_income.csv'):
+def plot_fiscal_income(source=f'{TARGET_FOLDER}/tf_fiscal_income.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        # text_auto='.2s',
+        text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
-        title=f"General Government Income as of {as_of_date}"
+        title=f"General Government Income as of {as_of_date} <br>Source: {retrieved_from}</br>"
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
@@ -308,14 +342,14 @@ def transform_fiscal_expenses(source=f'{TARGET_FOLDER}/src_fiscal_expenses.csv' 
     df.to_csv(output, index=False, encoding='utf-16')
     log_data_transform(output)
 
-def plot_fiscal_expenses(source=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv'):
+def plot_fiscal_expenses(source=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        # text_auto='.2s',
+        text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
-        title=f"General Government Expenses {as_of_date}"
+        title=f"General Government Expenses {as_of_date} <br>Source: {retrieved_from}</br>"
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
@@ -328,20 +362,20 @@ def transform_fiscal_finance(source=f'{TARGET_FOLDER}/src_fiscal_finance.csv' , 
     df.to_csv(output, index=False, encoding='utf-16')
     log_data_transform(output)
 
-def plot_fiscal_finance(source=f'{TARGET_FOLDER}/tf_fiscal_finance.csv'):
+def plot_fiscal_finance(source=f'{TARGET_FOLDER}/tf_fiscal_finance.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        # text_auto='.2s',
+        text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
-        title=f"General Government Deficit Finance Source as of {as_of_date}"
+        title=f"General Government Deficit Finance Source as of {as_of_date} <br>Source: {retrieved_from}</br>"
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(xaxis={'visible': False, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
-def transform_cpi_headline(source=f'{TARGET_FOLDER}/src_cpi_headline.csv' ,  output_last=f'{TARGET_FOLDER}/tf_cpi_last.csv', output_12m=f'{TARGET_FOLDER}/tf_cpi_12m.csv'):
+def transform_cpi_headline(source=f'{TARGET_FOLDER}/src_cpi_headline.csv',  output_last=f'{TARGET_FOLDER}/tf_cpi_last.csv', output_12m=f'{TARGET_FOLDER}/tf_cpi_12m.csv'):
     df = pd.read_csv(source, encoding='utf-16')
 
     # Add labels
@@ -375,15 +409,15 @@ def transform_cpi_headline(source=f'{TARGET_FOLDER}/src_cpi_headline.csv' ,  out
     df_12m.to_csv(output_12m, index=False, encoding='utf-16')
     log_data_transform(output_12m)
 
-def plot_cpi_last(source=f'{TARGET_FOLDER}/tf_cpi_last.csv'):
+def plot_cpi_last(source=f'{TARGET_FOLDER}/tf_cpi_last.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        # text_auto='.2s',
+        text_auto='.2s',
         hover_data={'Value': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
         color='Total',
-        title=f"Inflation by components as of {as_of_date}",
+        title=f"Inflation by components as of {as_of_date} <br>Source: {retrieved_from}</br>",
         labels={'Value': '%'}
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
@@ -391,12 +425,12 @@ def plot_cpi_last(source=f'{TARGET_FOLDER}/tf_cpi_last.csv'):
     fig.update_layout(xaxis={'visible': True, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
     return fig
 
-def plot_cpi_12m(source=f'{TARGET_FOLDER}/tf_cpi_12m.csv', series = 'Inflation, yoy'):
+def plot_cpi_12m(source=f'{TARGET_FOLDER}/tf_cpi_12m.csv', series = 'Inflation, yoy', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Retrieved'][0]
     fig = px.area(df, x = 'Date', y = series,
         hover_data={series: ':.1f'},
-        title=f"{series}",
+        title=f"{series} <br>Source: {retrieved_from}</br>",
         labels={series: '%'}
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
@@ -425,15 +459,15 @@ def transform_international_reserves(source=f'{TARGET_FOLDER}/src_international_
     df.to_csv(output, index=False, encoding='utf-16')
     log_data_transform(output)
 
-def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserves.csv', title = 'International reserves, bn USD'):
+def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserves.csv', title = 'International reserves, bn USD', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['Date'][0]
     df = df[df['Total']!=True]
     fig = px.bar(df, x = 'Value', y='Item', orientation='h',
-        # text_auto='.2s',
+        text_auto='.2s',
         hover_data={'Share': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
-        title=f"{title} as of {as_of_date}"
+        title=f"{title} as of {as_of_date} <br>Source: {retrieved_from}</br>"
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     fig.update_layout(showlegend=False)
@@ -441,7 +475,7 @@ def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserv
     # fig.update_layout(template='plotly_white')
     return fig
 
-def transform_bond_yields(source=f'{TARGET_FOLDER}/src_bond_yields.csv' ,  output=f'{TARGET_FOLDER}/tf_bond_yields.csv'):
+def transform_bond_yields(source=f'{TARGET_FOLDER}/src_bond_yields.csv', output=f'{TARGET_FOLDER}/tf_bond_yields.csv'):
     df = pd.read_csv(source, encoding='utf-16')
     # Add labels
     df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_bond_yields')
@@ -458,13 +492,14 @@ def transform_bond_yields(source=f'{TARGET_FOLDER}/src_bond_yields.csv' ,  outpu
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_bond_yields(source=f'{TARGET_FOLDER}/tf_bond_yields.csv', title = "Bond Placements and Yields in, UAH mn"):
+def plot_bond_yields(source=f'{TARGET_FOLDER}/tf_bond_yields.csv', title = "Bond Placements and Their Yields, UAH mn", retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     df_plot = df[df['month']!='Total for the year 2022']
     fig = px.bar(df_plot, x = 'month', y='UAH: amount',
         color='UAH: weighted yield',
+        text_auto='.2s',
         hover_data={'UAH: amount': ':.1f'},
-        title=f"Bond Placements and Yields",
+        title=f"{title} <br>Source: {retrieved_from}</br>",
         labels={'month': ''}
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
@@ -492,18 +527,19 @@ def transform_policy_rate(source=f'{TARGET_FOLDER}/src_policy_rate.csv' ,  outpu
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_policy_rate(source=f'{TARGET_FOLDER}/tf_policy_rate.csv', title = "Policy rate dynamics, %"):
+def plot_policy_rate(source=f'{TARGET_FOLDER}/tf_policy_rate.csv', title = "Policy rate dynamics, %", retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     df_plot = df
     if len(df_plot) < 3:
         fig = px.bar(df_plot, x = 'Date', y='Reference rate',
             hover_data={'Reference rate'},
-            title=title
+            text_auto='.2s',
+            title=f'{title} <br>Source: {retrieved_from}</br>'
         )
     else:
         fig = px.area(df_plot, x = 'Date', y='Reference rate',
             hover_data={'Reference rate'},
-            title=title
+            title=f'{title} <br>Source: {retrieved_from}</br>'
         ) 
     return fig
 
@@ -533,16 +569,16 @@ def transform_interest_rates(source=f'{TARGET_FOLDER}/src_interest_rates.csv' , 
     df.to_csv(output, encoding='utf-16', index=False)
     log_data_transform(output)
 
-def plot_interest_rates(source=f'{TARGET_FOLDER}/tf_interest_rates.csv'):
+def plot_interest_rates(source=f'{TARGET_FOLDER}/tf_interest_rates.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
     df_plot = df
     as_of_date = df_plot['Retrieved on'].iloc[0]
     df_plot.loc[df_plot['Region'] == 'Autonomous Republic of Crimea and the city of Sevastopol', 'Region'] = 'Crimea and Sevastopol' 
     fig = px.bar(df_plot, x = 'Nationals: average', y='Region', orientation='h',
-        # text_auto='.2s',
+        text_auto='.2s',
         hover_data={'Nationals: average': ':.1f'},
         color_discrete_sequence=COLOR_SEQUENCE,
-        title=f"Lending rates by region (only nationals), in % <br>As of {as_of_date}</br>"
+        title=f"Lending rates by region (only nationals), in % as of {as_of_date} <br>Source: {retrieved_from}</br>"
     )
     fig.update_layout(yaxis={'categoryorder':'total ascending'}, template = GRAPH_SCHEME)
     return fig
@@ -593,13 +629,14 @@ def transform_financial_soundness(source=f'{TARGET_FOLDER}/src_financial_soundne
     df.to_csv(output, encoding='utf-16', index=False)
     log_data_transform(output)
 
-def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv', series='Nonperforming loans to total gross loans'):
+def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv', series='Nonperforming loans to total gross loans', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16', index_col='index')
     df_plot = df.iloc[-12:,]
-    if series == 'Liquid assets6 to total assets':
+    if series == 'Liquid assets to total assets':
         fig = px.bar(df_plot, x = df_plot.index, y=series,
             hover_data={series: ':.1f'},
-            title=f"{series}, in %",
+            title=f"{series}, in % <br>Source: {retrieved_from}</br>",
+            text_auto='.2s',
             labels={
                 'index': 'Date Month',
                 'x': 'Date Month'
@@ -608,7 +645,7 @@ def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv
     else:
         fig = px.area(df_plot, x = df_plot.index, y=series,
             hover_data={series: ':.1f'},
-            title=f"{series}, in %",
+            title=f"{series}, in % <br>Source: {retrieved_from}</br>",
             labels={
                 'index': 'Date Month',
                 'x': 'Date Month'
@@ -646,7 +683,7 @@ def transform_fatalities(source = f'{TARGET_FOLDER}/src_fatalities.csv.gz', outp
     log_data_transform(output_geo)
     log_data_transform(output_fatalities)
 
-def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', mapbox_token = TOKEN):
+def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', mapbox_token = TOKEN, title='Conflict events, daily', retrieved_from='ACLED'):
     df = pd.read_csv(source,  encoding = 'utf-16', compression = 'gzip')
     df_plot = df
     px.set_mapbox_access_token(mapbox_token)
@@ -658,6 +695,7 @@ def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', ma
         color="EVENT_TYPE", 
         size="SIZE",
         hover_data={'FATALITIES': ':.1f'},
+        title=f'{title} <br>Source: {retrieved_from}</br>',
         labels={
             "MONTH_DATE": "Month date",
             "EVENT_TYPE": "Event type",
@@ -666,11 +704,11 @@ def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', ma
         },
         color_continuous_scale=px.colors.sequential.Sunsetdark, 
         size_max=50, 
-        zoom=5)
+        zoom=4)
     fig.update_layout(legend=dict(orientation="h"))
     return fig
 
-def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv', series = 'FATALITIES', title = 'FATALITIES'):
+def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv', series = 'FATALITIES', title = 'FATALITIES', retrieved_from='ACLED'):
     df = pd.read_csv(source,  encoding = 'utf-16')
     df_plot = df.groupby(['MONTH_DATE', 'EVENT_TYPE'])[series].sum()
     df_plot = df_plot.reset_index()
@@ -679,7 +717,7 @@ def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv',
         y = series,
         color='EVENT_TYPE',
         hover_data={f'{series}': ':.0f'},
-        title=f"{title} by month",
+        title=f"{title} by month <br>Source: {retrieved_from}</br>",
         labels={
             "MONTH_DATE": "Month date",
             "EVENT_TYPE": "Event type",
@@ -698,6 +736,7 @@ if __name__ == "__main__":
     get_google_news()
     get_yf_data()
     get_fatalities()
+    get_gdp_ua()
     print('All source data retrieved successfully')
 
     # Data transform

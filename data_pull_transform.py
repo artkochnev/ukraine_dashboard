@@ -32,9 +32,6 @@ DATA_SOURCES = 'data_sources.xlsx'
 
 # --- EMBEDDINGS
 UNHCR_APP = 'https://app.powerbi.com/view?r=eyJrIjoiZDBlM2EwOWMtMDk2Mi00ZDc4LTliYWUtZTNjMmNlN2ZmY2Y4IiwidCI6ImU1YzM3OTgxLTY2NjQtNDEzNC04YTBjLTY1NDNkMmFmODBiZSIsImMiOjh9'
-ACLED_APP = "https://tableau.acleddata.com/views/ukraine_dash_new/ukraine?:embed=y&amp;:showVizHome=no&amp;:host_url=https%3A%2F%2Ftableau.acleddata.com%2F&amp;:embed_code_version=3&amp;:tabs=no&amp;:toolbar=yes&amp;:showAppBanner=false&amp;:display_spinner=no&amp;:loadOrderID=0'"
-ACLED_APP = "https://tableau.acleddata.com/views/ukraine_dash_new/ukraine?:embed=y&amp;:host_url=https%3A%2F%2Ftableau.acleddata.com%2F&amp;:embed_code_version=3&amp;:tabs=no&amp;:toolbar=yes&amp;:showAppBanner=false&amp;:display_spinner=yes&amp;:loadOrderID=0'"
-# How to embed: https://discuss.streamlit.io/t/powerbi-dashboards-and-streamlit/15323/3
 
 # --- YAHOO FINANCE TEST PARAMETERS
 INSTRUMENT_LIST = {

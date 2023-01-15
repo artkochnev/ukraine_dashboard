@@ -12,7 +12,6 @@ import data_pull_transform as dp
 START_DATE = dp.START_DATE
 END_DATE = dp.END_DATE
 UNHCR_APP = dp.UNHCR_APP
-ACLED_APP = dp.ACLED_APP
 SOURCE_TEXTS = "assets/text.xlsx"
 SOURCE_METRICS = "assets/metrics.csv"
 SOURCE_NEWS = "assets/tf_google_news.csv"

@@ -32,6 +32,8 @@ DATA_SOURCES = 'data_sources.xlsx'
 
 # --- EMBEDDINGS
 UNHCR_APP = 'https://app.powerbi.com/view?r=eyJrIjoiZDBlM2EwOWMtMDk2Mi00ZDc4LTliYWUtZTNjMmNlN2ZmY2Y4IiwidCI6ImU1YzM3OTgxLTY2NjQtNDEzNC04YTBjLTY1NDNkMmFmODBiZSIsImMiOjh9'
+ACLED_APP = "https://tableau.acleddata.com/views/ukraine_dash_new/ukraine?:embed=y&amp;:showVizHome=no&amp;:host_url=https%3A%2F%2Ftableau.acleddata.com%2F&amp;:embed_code_version=3&amp;:tabs=no&amp;:toolbar=yes&amp;:showAppBanner=false&amp;:display_spinner=no&amp;:loadOrderID=0'"
+ACLED_APP = "https://tableau.acleddata.com/views/ukraine_dash_new/ukraine?:embed=y&amp;:host_url=https%3A%2F%2Ftableau.acleddata.com%2F&amp;:embed_code_version=3&amp;:tabs=no&amp;:toolbar=yes&amp;:showAppBanner=false&amp;:display_spinner=yes&amp;:loadOrderID=0'"
 # How to embed: https://discuss.streamlit.io/t/powerbi-dashboards-and-streamlit/15323/3
 
 # --- YAHOO FINANCE TEST PARAMETERS
@@ -53,7 +55,7 @@ def log_data_transform(output):
 
 # --- GOOGLE NEWS
 def convert_to_link(link, cover_text='Link'):
-    return f'<a href="{link}">{cover_text}</a>'
+    return f'[{cover_text}](https://{link})'
 
 def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TARGET_FOLDER}/tf_google_news.csv'):
     googlenews = GoogleNews(lang=lang, region=region)
@@ -63,6 +65,7 @@ def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TA
     df = df[['title', 'media', 'date', 'link']]
     df.columns = ['Title', 'Media', 'Date', 'Link']
     df['Link'] = df['Link'].apply(convert_to_link)
+    return df
     df.to_csv(output, encoding = 'utf-16', index=False)
     log_data_transform(output=output)
 
@@ -173,7 +176,7 @@ def transform_grain_data(source = f'{TARGET_FOLDER}/src_grain_destinations.csv',
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv', title ='Grain delivered under grain deal', retrieved_from='WFO|HDX'):
+def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv', title ='Grain delivered under grain deal', retrieved_from='WFO | HDX'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.bar(df, x = 'Tons received', y='Income group', color = 'Country', orientation='h',
         hover_data={'Tons received': ':.0f'},
@@ -194,7 +197,7 @@ def transform_hum_data(source = f'{TARGET_FOLDER}/src_hum_data.csv', output=f'{T
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
 
-def plot_hum_data(source=f'{TARGET_FOLDER}/tf_hum_data.csv', series = 'Refugees', title = 'Refugee count', retrieved_from='UNHCR|HDX'):
+def plot_hum_data(source=f'{TARGET_FOLDER}/tf_hum_data.csv', series = 'Refugees', title = 'Refugee count', retrieved_from='UNHCR | HDX'):
     df = pd.read_csv(source, encoding='utf-16')
     fig = px.area(df, y = series, x = 'Date', title=f'{title} <br>Source: {retrieved_from}</br>',)
     fig.update_layout(xaxis={'visible': True, 'showticklabels': True}, yaxis={'visible': True, 'showticklabels': True})
@@ -704,8 +707,9 @@ def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', ma
         },
         color_continuous_scale=px.colors.sequential.Sunsetdark, 
         size_max=50, 
-        zoom=4)
-    fig.update_layout(legend=dict(orientation="h"))
+        zoom=5,
+        height=600)
+    fig.update_layout(legend=dict(orientation="h", y=-0.02))
     return fig
 
 def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv', series = 'FATALITIES', title = 'FATALITIES', retrieved_from='ACLED'):
@@ -730,7 +734,7 @@ def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv',
     fig.update_layout(legend=dict(orientation="h"))
     return fig
 
-if __name__ == "__main__":
+def main():
     # Data retrieval
     get_ua_data()
     get_google_news()
@@ -757,27 +761,31 @@ if __name__ == "__main__":
     transform_fatalities()
     print('All data transformed successfully')
 
-# For testing
-# plot_ccy_data().show()
-# plot_hum_data(series = 'Refugees', title='Refugees').show()
-# plot_hum_data(series = 'Internally Displaced', title='Internally Displaced').show()
-# plot_hum_data(series = 'Civilian deaths, confirmed', title='Civilian deaths, confirmed').show()
-# plot_hum_data(series = 'Civilians injured, confirmed', title='Civilians injured, confirmed').show()
-# plot_reconstruction_sectors(series = 'Damage', title = 'Damage assessment as of August 2022, USD bn').show()
-# plot_reconstruction_sectors(series = 'Needs', title = 'Reconstruction needs assessment as of August 2022, USD bn').show()
-# plot_reconstruction_regions().show()
-# plot_ukraine_support(series='Value committed', title = 'Support publicly announced, USD bn').show()
-# plot_ukraine_support(series='Value delivered', title = 'Support delivered in cash and kind, USD bn').show()
-# plot_cpi_headline().show()
-# plot_international_reserves().show()
-# plot_bond_yields().show()
-# plot_policy_rate().show()
-# plot_interest_rates().show()
-# plot_financial_soundness(series='Nonperforming loans net of provisions to capital').show()
-# plot_financial_soundness(series='Liquid assets to total assets').show()
-# plot_fatalities_series(series = 'FATALITIES', title = 'Number of Fatalities').show()
-# plot_fatalities_series(series='COUNT', title = 'Number of conflict events').show()
-# plot_fatalities_geo().show()
-# plot_grain_destinations().show()
-# plot_cpi_12m().show()
-# plot_cpi_last().show()
+    # For testing
+    # plot_ccy_data().show()
+    # plot_hum_data(series = 'Refugees', title='Refugees').show()
+    # plot_hum_data(series = 'Internally Displaced', title='Internally Displaced').show()
+    # plot_hum_data(series = 'Civilian deaths, confirmed', title='Civilian deaths, confirmed').show()
+    # plot_hum_data(series = 'Civilians injured, confirmed', title='Civilians injured, confirmed').show()
+    # plot_reconstruction_sectors(series = 'Damage', title = 'Damage assessment as of August 2022, USD bn').show()
+    # plot_reconstruction_sectors(series = 'Needs', title = 'Reconstruction needs assessment as of August 2022, USD bn').show()
+    # plot_reconstruction_regions().show()
+    # plot_ukraine_support(series='Value committed', title = 'Support publicly announced, USD bn').show()
+    # plot_ukraine_support(series='Value delivered', title = 'Support delivered in cash and kind, USD bn').show()
+    # plot_cpi_headline().show()
+    # plot_international_reserves().show()
+    # plot_bond_yields().show()
+    # plot_policy_rate().show()
+    # plot_interest_rates().show()
+    # plot_financial_soundness(series='Nonperforming loans net of provisions to capital').show()
+    # plot_financial_soundness(series='Liquid assets to total assets').show()
+    # plot_fatalities_series(series = 'FATALITIES', title = 'Number of Fatalities').show()
+    # plot_fatalities_series(series='COUNT', title = 'Number of conflict events').show()
+    # plot_fatalities_geo().show()
+    # plot_grain_destinations().show()
+    # plot_cpi_12m().show()
+    # plot_cpi_last().show()
+
+if __name__ == "__main__":
+    main()
+

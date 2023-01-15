@@ -12,6 +12,7 @@ import data_pull_transform as dp
 START_DATE = dp.START_DATE
 END_DATE = dp.END_DATE
 UNHCR_APP = dp.UNHCR_APP
+ACLED_APP = dp.ACLED_APP
 SOURCE_TEXTS = "assets/text.xlsx"
 SOURCE_METRICS = "assets/metrics.csv"
 SOURCE_NEWS = "assets/tf_google_news.csv"
@@ -26,20 +27,30 @@ def read_texts(source = SOURCE_TEXTS, sheet_name = 0):
 def write_expander(df, title='summary_short_effects', title_col='title', text_col = 'text', expander_title='Explainer'):
     text = df[text_col][df[title_col]==title].iloc[0]
     with st.expander(expander_title):
-        st.write(text)
+        st.markdown(text)
 
 def read_metrics(source = SOURCE_METRICS):
     df = pd.read_csv(source, encoding='utf-16')
     logging.info('Loaded metrics')
     return df
 
-def read_news(source = SOURCE_NEWS):
-    df = pd.read_csv(source, encoding='utf-16', index_col=False)
+def read_news():
+    df = dp.get_google_news()
     df = df[:5]
-    df = df.to_html(escape=False, index=False, render_links=True, justify='justify')
+    # df = df.to_html(escape=False, render_links=True, justify='justify')
     df = df.replace('border="1"','border="0"')
     logging.info('Loaded news')
     return df
+
+def write_news(df, id):
+    st.markdown('> **' + df['Title'].iloc[id] + "** | *" + df['Media'].iloc[id] + "* | " + df['Link'].iloc[id] + ' | Published: ' + df['Date'].iloc[id])
+
+def write_top5_news(df):
+    write_news(df, 0)
+    write_news(df, 1)
+    write_news(df, 2)
+    write_news(df, 3)
+    write_news(df, 4)
 
 def get_metric(df, title, value_col, title_col = 'Title', unit='default', digits = 0, digits_unit = 'default'):
     df = df
@@ -129,6 +140,13 @@ def main():
 
     # FINAL REPORT
     st.title('Humanitarian and Economic Situation in Ukraine')
+    with st.expander('Chapters'):
+        st.markdown(
+        """
+        - [War and People](#war-and-people)
+        - [War and Economics](#war-and-economics)
+        - [War and Cooperation](#war-and-cooperation)
+        """)
     st.header('Key indicators')
     m1, m2, m3 = st.columns(3)
     m1.metric(
@@ -160,11 +178,12 @@ def main():
         "UA International Reserves, USD bn", 
         value = get_metric(df_m, 'International Reserves', 'Last value', unit='bn'),
         )
-    write_expander(df_t,title='summary_short_effects', expander_title='Summary')
     st.markdown('---')
     st.subheader('Latest news')
-    st.markdown('**Source: Google News**')
-    st.markdown(df_news, unsafe_allow_html=True)
+    st.markdown('*Google News Feed*')
+    write_expander(df_t,title='Summary', expander_title='Summary')
+    write_top5_news(df_news)
+    # st.markdown(df_news, unsafe_allow_html=True)
     st.write('')
     st.write('')
     st.header("War and People")
@@ -183,7 +202,9 @@ def main():
         "Battle count", 
         value = get_metric(df_m, 'Battle count', 'Last value', digits=3),
         )
+    write_expander(df_t,title='Conflict intensity', expander_title='Conflict intensity')
     st.plotly_chart(fig_fatalities_geo, use_container_height=800)
+    # st.components.v1.iframe(ACLED_APP, width=800, height=800, scrolling=True)
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_fatalities_count, use_container_height=600, use_container_width=300)
     col2.plotly_chart(fig_battle_count, use_container_height=600, use_container_width=300)
@@ -206,6 +227,7 @@ def main():
         delta = get_metric(df_m, 'Civilians injured, confirmed', 'Change', digits=3),
         delta_color = 'inverse' 
         )
+    write_expander(df_t,title='Casualties', expander_title='Casualties and surronding issues')
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_civs_dead, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_civs_injured, use_container_height=400, use_container_width=300)
@@ -223,7 +245,8 @@ def main():
         value = get_metric(df_m, 'Internally displaced', 'Last value', digits=6),
         delta = get_metric(df_m, 'Internally displaced', 'Change', digits=6),
         delta_color = 'inverse' 
-        )    
+        )
+    write_expander(df_t,title='Displacement', expander_title='How to interpret displacement data')    
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_idps, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_refugees, use_container_height=400, use_container_width=300)
@@ -254,6 +277,7 @@ def main():
         delta = get_metric(df_m, 'FX rate: UAH/USD', 'Change'),
         delta_color = 'inverse',
         )
+    write_expander(df_t,title='Monetary sector', expander_title='How Ukraine adjusted monetary policy to avoid panic')
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_cpi_12m, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_ccy, use_container_height=400, use_container_width=300)
@@ -262,6 +286,7 @@ def main():
     col2.plotly_chart(fig_interest_rates, use_container_height=400, use_container_width=300)
     st.markdown('---')
     st.subheader('National bank tools')
+    write_expander(df_t,title='National bank tools', expander_title='Key risks of the monetary policy')
     m1, m2 = st.columns(2)
     m1.metric(
         "Key rate", 
@@ -276,6 +301,7 @@ def main():
     col2.plotly_chart(fig_international_reserves, use_container_height=400, use_container_width=300)
     st.markdown('---')
     st.subheader('Financial system')
+    write_expander(df_t,title='Financial system', expander_title='How healthy are Ukranian banks?')
     m1, m2 = st.columns(2)
     m1.metric(
         "NPL ratio", 
@@ -313,6 +339,7 @@ def main():
         "Domestic finance of deficit", 
         value = get_metric(df_m, 'Fiscal finance, total', 'Last value', unit='pct'),
         )
+    write_expander(df_t,title='Government finance', expander_title='How much Ukraine needs to finance the war')
     col1, col2 = st.columns(2)
     col1.plotly_chart(fig_fiscal_income, use_container_height=400, use_container_width=300)
     col2.plotly_chart(fig_fiscal_expenses, use_container_height=400, use_container_width=300)
@@ -322,6 +349,7 @@ def main():
 
     st.header('War and cooperation')
     st.subheader('Ukraine support')
+    write_expander(df_t,title='Ukraine support', expander_title='How much do countries follow their promise to support Ukraine')
     m1, m2, m3 = st.columns(3)
     m1.metric(
         "Support announced, USD",
@@ -349,6 +377,7 @@ def main():
         'Grain sent (high-income) countries, tons',
         value = get_metric(df_m, 'Amount to high-income countries', 'Last value', digits=6)
     )
+    write_expander(df_t,title='Grain deal', expander_title='Who gets the most of the grain deal')
     st.plotly_chart(fig_grain_destinations)
     st.markdown('---')
     st.header('War and reconstruction')
@@ -366,18 +395,24 @@ def main():
         "Ukraine GDP (2021), current USD", 
         value = get_metric(df_m, 'GDP Ukraine, current USD', 'Last value', unit='bn'),
         )
+    write_expander(df_t,title='War and reconstruction', expander_title='How much Ukraine needs to rebuild the country')
     st.plotly_chart(fig_reconstruction_damage)
     st.plotly_chart(fig_reconstruction_regions, use_container_height=800)
     st.plotly_chart(fig_reconstruction_needs)    
     st.markdown('___')
-    #st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='summary_short_effects'))
-    # fp.plot_figure(components.iframe("https://datawrapper.dwcdn.net/EQ9IF/3/", height=800, scrolling=True))
-    # fx_select = st.selectbox(
-    #     'Choose a currency pair',
-    #     ("USD/HUF", "USD/PLN", "USD/CZK", "USD/RSD", "USD/TRY", "USD/RON"))
-    
-    # fig_cee_currency = fp.fig_investing_data(df_investing_data, fx_select, bench_date=CUT_OFF_DATE, height=400, width=400)
-    #st.write(dp.get_text(LINK_LOCAL_TEXTS, label_val='europe_energy'))
+    st.header('References')
+    st.markdown(
+        """
+        - ACLED. [Ukraine crisis hub](https://acleddata.com/ukraine-crisis/)
+        - International Organisation for Migration | IOM. [Ukraine Displacement](https://displacement.iom.int/ukraine)
+        - Kiel Institute for the World Economy | IFW Kiel. [Ukraine support tracker](https://www.ifw-kiel.de/topics/war-against-ukraine/ukraine-support-tracker/)
+        - National Bank of Ukraine | NBU. [Statistics at the National Bank of Ukraine](https://bank.gov.ua/en/statistic/nbustatistic)
+        - The Humanitarian Data Exchange | HDX. [Ukraine - Humanitarian Data Exchange](https://data.humdata.org/group/ukr)
+        - United Nations | UN. [Black Sea Grain Initiative Joint Coordination Centre](https://www.un.org/en/black-sea-grain-initiative/)
+        - UN Office of High Commissioner for Human Rights | OHCHR. [Ukraine](https://www.ohchr.org/en/countries/ukraine)
+        - UN Office of High Commissioner for Refugees | UNHCR. [Ukraine Refugee Situation](https://data.unhcr.org/en/situations/ukraine)
+        - World Bank (2022). [Ukraine: Rapid damage and needs assessment](https://documents.worldbank.org/en/publication/documents-reports/documentdetail/099445209072239810/p17884304837910630b9c6040ac12428d5c)
+        """)
 
 if __name__ == '__main__':
     main()

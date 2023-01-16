@@ -1,0 +1,28 @@
+[theme]
+primaryColor="#f5c338"
+backgroundColor="#e0e0e0"
+secondaryBackgroundColor="#cfcfcf"
+textColor="#262730"
+font="sans serif"
+
+[global]
+port = 8501
+
+[browser]
+
+# Internet address of the server server that the browser should connect to. Can be IP address or DNS name.
+# Default: 'localhost'
+# The value below was set in C:\Users\Simon.Rhee\.streamlit\config.toml
+serverAddress = "172.17.0.2"
+
+# Whether to send usage statistics to Streamlit.
+# Default: true
+gatherUsageStats = true
+
+# Port that the browser should use to connect to the server when in liveSave mode.
+# Default: whatever value is set in server.port.
+serverPort = 8501
+
+
+[mapbox]
+token = "pk.eyJ1IjoiYXJ0ZW0ta29jaG5ldiIsImEiOiJjbDBwczhhMmQyMjc3M2ltOXZteGxkeTRyIn0.jS7sRmqp68P5NZj6mkKazQ"

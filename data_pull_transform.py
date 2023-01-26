@@ -143,6 +143,7 @@ def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLD
             dlink = df['link'][ind]
             dskip = df['row skip'][ind]
             dfunction = df['function'][ind]
+            print(dlink)
             if dext == 'csv':
                 df_return = pd.read_csv(dlink)
             elif dext == 'xlsx':
@@ -151,7 +152,10 @@ def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLD
                     dsheet = int(df['sheet_count'][ind])
                     if np.isnan(dsheet) == True:
                         dsheet = 0
-                df_return = pd.read_excel(dlink, sheet_name=dsheet, header=0, skiprows=dskip)
+                try:
+                    df_return = pd.read_excel(dlink, sheet_name=dsheet, header=0, skiprows=dskip, storage_options=STORAGE_OPTIONS)
+                except:
+                    df_return = pd.read_excel(dlink, sheet_name=dsheet, header=0, skiprows=dskip)
             elif dext == 'zip':
                 df_return = pd.read_csv(dlink, compression='zip')
             else:

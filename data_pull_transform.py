@@ -285,11 +285,11 @@ def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', serie
 def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title = 'Declared support and delivery rate, top 10 by commitment', retrieved_from='IFW Kiel'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['retrieved'].iloc[0]
-    df_plot = df.groupby(['countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
+    df_plot = df.groupby(['Countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
     df_plot['Ratio: Delivered to committed'] = df_plot['Value delivered'] / df_plot['Value committed']
     df_plot = df_plot.sort_values(by='Value committed', ascending=False)
     df_plot = df_plot.iloc[:10,]
-    fig = px.bar(df_plot, y="countries", 
+    fig = px.bar(df_plot, y="Countries", 
                     x="Value committed",
                     color='Ratio: Delivered to committed', 
                     orientation='h', 

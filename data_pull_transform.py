@@ -13,7 +13,7 @@ import os
 import plotly.graph_objects as go
 
 # LOGGING
-logging.basicConfig(filename='data_pull.log', encoding='utf-8', level=logging.INFO)
+logging.basicConfig(filename='data_pull.log', level=logging.INFO)
 
 # SSL Error fix for IFW Kiel
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -143,7 +143,9 @@ def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLD
             dlink = df['link'][ind]
             dskip = df['row skip'][ind]
             dfunction = df['function'][ind]
+            dsheet_count = df['sheet_count'][ind]
             print(dlink)
+            print(dsheet_count)
             if dext == 'csv':
                 df_return = pd.read_csv(dlink)
             elif dext == 'xlsx':
@@ -155,7 +157,10 @@ def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLD
                 try:
                     df_return = pd.read_excel(dlink, sheet_name=dsheet, header=0, skiprows=dskip, storage_options=STORAGE_OPTIONS)
                 except:
-                    df_return = pd.read_excel(dlink, sheet_name=dsheet, header=0, skiprows=dskip)
+                    try:
+                        df_return = pd.read_excel(dlink, sheet_name=dsheet, header=0, skiprows=dskip)
+                    except:
+                        df_return = pd.read_excel(dlink, sheet_name=int(dsheet_count), header=0, skiprows=dskip)
             elif dext == 'zip':
                 df_return = pd.read_csv(dlink, compression='zip')
             else:
@@ -170,9 +175,11 @@ def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLD
 def transform_grain_data(source = f'{TARGET_FOLDER}/src_grain_destinations.csv', output=f'{TARGET_FOLDER}/tf_grain_destinations.csv'):
     df = pd.read_csv(source, thousands=r',', encoding='utf-16')
     df['Income group'] = df['Income group'].fillna('mixed')
-    df = df.groupby(['Country', 'Income group']).sum('total metric tons')
-    df = df.sort_values(by=['total metric tons'], ascending=False)
+    df = df[['Country', 'Income group', 'Tonnage']]
+    df = df.groupby(['Country', 'Income group']).sum('Tonnage')
+    df = df.sort_values(by=['Tonnage'], ascending=False)
     df = df.reset_index()
+    print(df)
     df.columns = ['Country', 'Income group', 'Tons received']
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
@@ -239,25 +246,25 @@ def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regio
 # --- UKRAINE SUPPORT
 def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  output=f'{TARGET_FOLDER}/tf_ukraine_support.csv'):
     df = pd.read_csv(source, encoding='utf-16')
-    df = df[['countries',	
+    df = df[['Countries',	
         'Announcement Date',	
         'Type of Aid General',
-        'Value committed (own estimate, in USD)',	
-        'Value delivered (own estimate, in USD)',	
+        'Value Committed (own estimate, in USD)',	
+        'Value Delivered (own estimate, in USD)',	
         'Converted Value in EUR',
         'Total monetary value delivered in EUR', 
         'retrieved']]
     df = df.replace('.', np.nan)
     df['Value committed'] = df['Converted Value in EUR']
-    df.loc[df['Value committed'].isna() == True, 'Value committed'] = df['Value committed (own estimate, in USD)']
+    # df.loc[df['Value committed'].isna() == True, 'Value committed'] = df['Value committed (own estimate, in USD)']
     df['Value delivered'] = df['Total monetary value delivered in EUR']
-    df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = df['Value delivered (own estimate, in USD)']
-    df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = 0
+    # df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = df['Value delivered (own estimate, in USD)']
+    # df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = 0
     df = df[(df['Value committed'] != 'No price')]
     df = df[(df['Value delivered'] != 'No price')]
     df['Value committed'] = df['Value committed'].astype(float) / 10**9 #bn USD
     df['Value delivered'] = df['Value delivered'].astype(float) / 10**9 #bn USD
-    df = df.groupby(['countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'})
+    df = df.groupby(['Countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'})
     df['Ratio: Delivered to committed'] = df['Value delivered']/df['Value committed']
     df = df.reset_index()
     df.to_csv(output, encoding='utf-16')

@@ -266,6 +266,7 @@ def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  
     df['Value delivered'] = df['Value delivered'].astype(float) / 10**9 #bn USD
     df = df.groupby(['Countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'})
     df['Ratio: Delivered to committed'] = df['Value delivered']/df['Value committed']
+    df.columns = ['countries', 'Type of Aid General', 'retrieved', 'Value delivered', 'Ratio: Delivered to committed']
     df = df.reset_index()
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
@@ -273,7 +274,7 @@ def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  
 def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', series = 'Value committed', title='Public commitment to support Ukraine (both cash and kind)', retrieved_from='IFW Kiel'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['retrieved'].iloc[0]
-    fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General','Countries'], values=series,
+    fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General','countries'], values=series,
                 hover_data={series: ':.2f'},
                 color_discrete_sequence=COLOR_SEQUENCE,
                 title=f'{title} USDbn <br>Source: {retrieved_from}</br>'
@@ -285,11 +286,11 @@ def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', serie
 def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title = 'Declared support and delivery rate, top 10 by commitment', retrieved_from='IFW Kiel'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['retrieved'].iloc[0]
-    df_plot = df.groupby(['Countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
+    df_plot = df.groupby(['countries']).agg({'Value committed': 'sum', 'Value delivered': 'sum'}).reset_index()
     df_plot['Ratio: Delivered to committed'] = df_plot['Value delivered'] / df_plot['Value committed']
     df_plot = df_plot.sort_values(by='Value committed', ascending=False)
     df_plot = df_plot.iloc[:10,]
-    fig = px.bar(df_plot, y="Countries", 
+    fig = px.bar(df_plot, y="countries", 
                     x="Value committed",
                     color='Ratio: Delivered to committed', 
                     orientation='h', 

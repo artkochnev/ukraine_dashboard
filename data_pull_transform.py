@@ -273,7 +273,7 @@ def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  
 def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', series = 'Value committed', title='Public commitment to support Ukraine (both cash and kind)', retrieved_from='IFW Kiel'):
     df = pd.read_csv(source, encoding='utf-16')
     as_of_date = df['retrieved'].iloc[0]
-    fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General','countries'], values=series,
+    fig = px.treemap(df, path=[px.Constant("All"), 'Type of Aid General','Countries'], values=series,
                 hover_data={series: ':.2f'},
                 color_discrete_sequence=COLOR_SEQUENCE,
                 title=f'{title} USDbn <br>Source: {retrieved_from}</br>'

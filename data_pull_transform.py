@@ -179,7 +179,6 @@ def transform_grain_data(source = f'{TARGET_FOLDER}/src_grain_destinations.csv',
     df = df.groupby(['Country', 'Income group']).sum('Tonnage')
     df = df.sort_values(by=['Tonnage'], ascending=False)
     df = df.reset_index()
-    print(df)
     df.columns = ['Country', 'Income group', 'Tons received']
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)

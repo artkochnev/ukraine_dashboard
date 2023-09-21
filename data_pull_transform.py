@@ -697,7 +697,8 @@ def transform_fatalities(source = f'{TARGET_FOLDER}/src_fatalities.csv.gz', outp
 
 def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', mapbox_token = TOKEN, title='Conflict events, daily', retrieved_from='ACLED'):
     df = pd.read_csv(source,  encoding = 'utf-16', compression = 'gzip')
-    df_plot = df
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    df_plot = df.sort_values(by=['DATE'])
     px.set_mapbox_access_token(mapbox_token)
     fig = px.scatter_mapbox(df_plot,
         animation_frame='DATE',

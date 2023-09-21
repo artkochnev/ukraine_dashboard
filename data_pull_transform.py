@@ -264,9 +264,10 @@ def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  
     df = df[(df['Value delivered'] != 'No price')]
     df['Value committed'] = df['Value committed'].astype(float) / 10**9 #bn USD
     df['Value delivered'] = df['Value delivered'].astype(float) / 10**9 #bn USD
-    df = df.groupby(['Countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'})
+    df = df.groupby(['Countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'}).reset_index()
     df['Ratio: Delivered to committed'] = df['Value delivered']/df['Value committed']
-    df.columns = ['countries', 'Type of Aid General', 'retrieved', 'Value delivered', 'Ratio: Delivered to committed']
+    df.rename(columns={'Countries': 'countries'}, inplace=True)
+    df.columns = ['countries', 'Type of Aid General', 'retrieved', 'Value committed', 'Value delivered', 'Ratio: Delivered to committed']
     df = df.reset_index()
     df.to_csv(output, encoding='utf-16')
     log_data_transform(output)
@@ -743,8 +744,7 @@ def plot_fatalities_series(source = f'{TARGET_FOLDER}/tf_fatalities_series.csv',
     fig.update_layout(legend=dict(orientation="h"))
     return fig
 
-def main():
-    # Data retrieval
+def get_data():
     get_ua_data()
     get_google_news()
     get_yf_data()
@@ -752,7 +752,7 @@ def main():
     get_gdp_ua()
     print('All source data retrieved successfully')
 
-    # Data transform
+def transform_data():
     transform_hum_data()
     transform_grain_data()
     transform_reconstruction_sectors()
@@ -769,6 +769,18 @@ def main():
     transform_financial_soundness()
     transform_fatalities()
     print('All data transformed successfully')
+
+def process_data(get_source = True, transform = True):
+    if get_source == True:
+        get_data()
+    
+    if transform == True:
+        transform_data()
+
+def main():
+    # Full
+    process_data(get_source=False, transform=True)
+    # transform_support_data()
 
     # For testing
     # plot_ccy_data().show()

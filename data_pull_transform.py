@@ -60,6 +60,7 @@ def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TA
     news = googlenews.results()
     df = pd.DataFrame(news)
     df = df[['title', 'media', 'date', 'link']]
+    df['title'] = df['title'].str.replace('More', ': ')
     df.columns = ['Title', 'Media', 'Date', 'Link']
     df['Link'] = df['Link'].apply(convert_to_link)
     return df
@@ -147,7 +148,10 @@ def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLD
             print(dlink)
             print(dsheet_count)
             if dext == 'csv':
-                df_return = pd.read_csv(dlink)
+                try:
+                    df_return = pd.read_csv(dlink)
+                except Exception as e:
+                    logging.error(f'Could not download {dlink}: {e}')
             elif dext == 'xlsx':
                 dsheet = str(df['sheet'][ind])
                 if dsheet == '' or pd.isna(dsheet) == True or dsheet == 'nan':
@@ -779,10 +783,10 @@ def process_data(get_source = True, transform = True):
 
 def main():
     # Full
-    process_data(get_source=False, transform=True)
-    # transform_support_data()
+    process_data(get_source=True, transform=True)
 
     # For testing
+    # get_google_news()
     # plot_ccy_data().show()
     # plot_hum_data(series = 'Refugees', title='Refugees').show()
     # plot_hum_data(series = 'Internally Displaced', title='Internally Displaced').show()

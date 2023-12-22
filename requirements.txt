@@ -6,4 +6,4 @@ openpyxl==3.0.10
 click==8.1.3
 yfinance==0.1.85
 xlrd >= 1.0.0
-GoogleNews==1.6.6
+GoogleNews==1.6.12

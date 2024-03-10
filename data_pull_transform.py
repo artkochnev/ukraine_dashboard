@@ -752,7 +752,7 @@ def get_data():
     get_ua_data()
     get_google_news()
     get_yf_data()
-    get_fatalities()
+    # get_fatalities()
     get_gdp_ua()
     print('All source data retrieved successfully')
 
@@ -771,7 +771,7 @@ def transform_data():
     transform_policy_rate()
     transform_interest_rates()
     transform_financial_soundness()
-    transform_fatalities()
+    # transform_fatalities()
     print('All data transformed successfully')
 
 def process_data(get_source = True, transform = True):

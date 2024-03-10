@@ -147,33 +147,25 @@ def main():
         - [War and Cooperation](#war-and-cooperation)
         """)
     st.header('Key indicators')
-    m1, m2, m3 = st.columns(3)
+    m1, m2 = st.columns(2)
     m1.metric(
-        "Fatalities, estimated", 
-        value = get_metric(df_m, 'Fatalities count', 'Last value', digits=3),
-        )
-    m2.metric(
         "Refugees", 
         value = get_metric(df_m, 'Refugees', 'Last value', digits=6),
         delta = get_metric(df_m, 'Refugees', 'Change', digits=6),
         delta_color = 'inverse' 
         )
-    m3.metric(
+    m2.metric(
         "Internally displaced", 
         value = get_metric(df_m, 'Internally displaced', 'Last value', digits=6),
         delta = get_metric(df_m, 'Internally displaced', 'Change', digits=6),
         delta_color = 'inverse' 
         )
-    m1, m2, m3 = st.columns(3)
+    m1, m2 = st.columns(2)
     m1.metric(
         "Reconstruction needs estimated, USD", 
         value = get_metric(df_m, 'Reconstruction needs', 'Last value', unit='bn'),
         )
     m2.metric(
-        "Support delivered to Ukraine, USD bn", 
-        value = get_metric(df_m, 'Delivered', 'Last value', unit='bn'),
-        )
-    m3.metric(
         "UA International Reserves, USD bn", 
         value = get_metric(df_m, 'International Reserves', 'Last value', unit='bn'),
         )

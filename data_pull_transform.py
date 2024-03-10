@@ -26,7 +26,6 @@ GRAPH_SCHEME = 'ggplot2'
 COLOR_SEQUENCE = ['#c98b2d', '#152c44', '#919daa', '#931d1d', '#e9e8e4', '#5e6063', '#c1997c', '#e8cd90', '#3e74c4']
 ACLED_DATA = r'https://acleddata.com/download/38560/?tmstv=1673161723'
 STORAGE_OPTIONS = {'User-Agent': 'Mozilla/9.0'}
-TOKEN = os.environ['MAPBOX_TOKEN']
 TARGET_FOLDER = 'assets'
 DATA_SOURCES = 'data_sources.xlsx'
 
@@ -39,6 +38,14 @@ INSTRUMENT_LIST = {
     'label': ['UAH/USD'],
     'type': ['FX rate']
 }
+
+# --- MAPBOX TOKEN
+def get_mapbox_token(label = 'MAPBOX_TOKEN'):
+    try:
+        return os.environ[label]
+    except Exception as e:
+        logging.error(f'Could not export Mapbox token {e}')
+        return None
 
 # --- UNLOCK FOR PRODUCTION
 pd.set_option('display.max_columns', None)
@@ -770,7 +777,7 @@ def transform_fatalities(source = f'{TARGET_FOLDER}/src_fatalities.csv.gz', outp
     except Exception as e:
         logging.error(f'Could not get {output_geo} and {output_fatalities}. Error: {e}')
 
-def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', mapbox_token = TOKEN, title='Conflict events, daily', retrieved_from='ACLED'):
+def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', mapbox_token = get_mapbox_token(), title='Conflict events, daily', retrieved_from='ACLED'):
     df = pd.read_csv(source,  encoding = 'utf-16', compression = 'gzip')
     df['DATE'] = pd.to_datetime(df['DATE'])
     df_plot = df.sort_values(by=['DATE'])

@@ -3292,3 +3292,21 @@ INFO:root:Loaded texts
 INFO:root:Loaded metrics
 INFO:root:assets/tf_google_news.csv stored successfully: 03/10/2024, 22:11:11
 INFO:root:Loaded news
+ERROR:root:Could not export Mapbox token 'MAPBOX_TOKEN'
+INFO:root:Loaded texts
+INFO:root:Loaded metrics
+INFO:root:assets/tf_google_news.csv stored successfully: 03/10/2024, 22:01:22
+INFO:root:Loaded news
+INFO:root:Loaded texts
+INFO:root:Loaded metrics
+INFO:root:assets/tf_google_news.csv stored successfully: 03/10/2024, 22:02:16
+INFO:root:Loaded news
+ERROR:root:Could not export Mapbox token 'MAPBOX_TOKEN'
+INFO:root:Loaded texts
+INFO:root:Loaded metrics
+INFO:root:assets/tf_google_news.csv stored successfully: 03/10/2024, 22:03:06
+INFO:root:Loaded news
+INFO:root:Loaded texts
+INFO:root:Loaded metrics
+INFO:root:assets/tf_google_news.csv stored successfully: 03/10/2024, 22:03:23
+INFO:root:Loaded news

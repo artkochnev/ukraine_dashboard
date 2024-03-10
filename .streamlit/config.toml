@@ -16,6 +16,3 @@ gatherUsageStats = true
 
 # Port that the browser should use to connect to the server when in liveSave mode.
 # Default: whatever value is set in server.port.
-
-[mapbox]
-token = "pk.eyJ1IjoiYXJ0ZW0ta29jaG5ldiIsImEiOiJjbDBwczhhMmQyMjc3M2ltOXZteGxkeTRyIn0.jS7sRmqp68P5NZj6mkKazQ"

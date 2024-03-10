@@ -182,46 +182,17 @@ def main():
     st.markdown('*Google News Feed*')
     write_expander(df_t,title='Summary', expander_title='Summary')
     write_top5_news(df_news)
-    # st.markdown(df_news, unsafe_allow_html=True)
     st.write('')
     st.write('')
-    # st.header("War and People")
-    # Put key metrics
-    # st.subheader('Conflict intensity')
-    # m1, m2, m3 = st.columns(3)
-    # m1.metric(
-    #     "Violence events", 
-    #     value = get_metric(df_m, 'Violence events', 'Last value', digits=3),
-    #     )
-    # m2.metric(
-    #     "Explosions count", 
-    #     value = get_metric(df_m, 'Explosions count', 'Last value', digits=3),
-    #     )
-    # m3.metric(
-    #     "Battle count", 
-    #     value = get_metric(df_m, 'Battle count', 'Last value', digits=3),
-    #     )
-    # write_expander(df_t,title='Conflict intensity', expander_title='Conflict intensity')
-    # st.plotly_chart(fig_fatalities_geo, use_container_height=800)
-    # st.components.v1.iframe(ACLED_APP, width=800, height=800, scrolling=True)
-    # col1, col2 = st.columns(2)
-    # col1.plotly_chart(fig_fatalities_count, use_container_height=600, use_container_width=300)
-    # col2.plotly_chart(fig_battle_count, use_container_height=600, use_container_width=300)
-    # st.markdown('---')
     st.subheader('Civilian casualties')
-    # m1, m2, m3 = st.columns(3)
-    m2, m3 = st.columns(2)
-    # m1.metric(
-    #     "Fatalities, estimated", 
-    #     value = get_metric(df_m, 'Fatalities count', 'Last value', digits=3),
-    #     )
-    m2.metric(
+    m1, m2 = st.columns(2)
+    m1.metric(
         "Civilians killed, confirmed", 
         value = get_metric(df_m, 'Civilians killed, confirmed', 'Last value', digits=3),
         delta = get_metric(df_m, 'Civilians killed, confirmed', 'Change', digits=3),
         delta_color = 'inverse' 
         )
-    m3.metric(
+    m2.metric(
         "Civilians injured, confirmed", 
         value = get_metric(df_m, 'Civilians injured, confirmed', 'Last value', digits=3),
         delta = get_metric(df_m, 'Civilians injured, confirmed', 'Change', digits=3),
@@ -366,19 +337,6 @@ def main():
 #   st.plotly_chart(fig_ukraine_support_committed, use_container_height=800, use_container_width=800)
     st.plotly_chart(fig_ukraine_support_delivered, use_container_height=800, use_container_width=300)
     st.plotly_chart(fig_delivery_rate)
-    # st.markdown('---')
-    # st.subheader('Grain deal')
-    # m1, m2 = st.columns(2)
-    # m1.metric(
-    #     'Grain sent (all), tons',
-    #     value = get_metric(df_m, 'Total amount delivered', 'Last value', digits=6)
-    # )
-    # m2.metric(
-    #     'Grain sent (high-income) countries, tons',
-    #     value = get_metric(df_m, 'Amount to high-income countries', 'Last value', digits=6)
-    # )
-    # write_expander(df_t,title='Grain deal', expander_title='Who gets the most of the grain deal')
-    # st.plotly_chart(fig_grain_destinations)
     st.markdown('---')
     st.header('War and reconstruction')
     # Put key metrics
@@ -397,7 +355,7 @@ def main():
         )
     write_expander(df_t,title='War and reconstruction', expander_title='How much Ukraine needs to rebuild the country')
     st.plotly_chart(fig_reconstruction_damage)
-    st.plotly_chart(fig_reconstruction_regions, use_container_height=800)
+    st.plotly_chart(fig_reconstruction_regions, use_container_height=1600)
     st.plotly_chart(fig_reconstruction_needs)    
     st.markdown('___')
     st.header('References')

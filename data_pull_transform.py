@@ -55,17 +55,21 @@ def convert_to_link(link, cover_text='Link'):
     return f'[{cover_text}](https://{link})'
 
 def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TARGET_FOLDER}/tf_google_news.csv'):
-    googlenews = GoogleNews(lang=lang, region=region)
-    news = googlenews.get_news(search_topic)
-    news = googlenews.results()
-    df = pd.DataFrame(news)
-    df = df[['title', 'media', 'date', 'link']]
-    df['title'] = df['title'].str.replace('More', ': ')
-    df.columns = ['Title', 'Media', 'Date', 'Link']
-    df['Link'] = df['Link'].apply(convert_to_link)
-    return df
-    df.to_csv(output, encoding = 'utf-16', index=False)
-    log_data_transform(output=output)
+    try:
+        googlenews = GoogleNews(lang=lang, region=region)
+        news = googlenews.get_news(search_topic)
+        news = googlenews.results()
+        df = pd.DataFrame(news)
+        df = df[['title', 'media', 'date', 'link']]
+        df['title'] = df['title'].str.replace('More', ': ')
+        df.columns = ['Title', 'Media', 'Date', 'Link']
+        df['Link'] = df['Link'].apply(convert_to_link)
+        df.to_csv(output, encoding = 'utf-16', index=False)
+        log_data_transform(output=output)
+        return df
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
+
 
 def plot_google_news(df = pd.DataFrame):
     tab = go.Figure(data=[go.Table(
@@ -82,16 +86,20 @@ def plot_google_news(df = pd.DataFrame):
     return tab
 
 # --- GDP World Bank
-def get_gdp_ua(source='https://api.db.nomics.world/v22/series/WB/WDI/A-NY.GDP.MKTP.CD-UKR.csv', outout=f'{TARGET_FOLDER}/tf_gdp_ua.csv'):
-    df = pd.read_csv(source)
-    df.columns = ['Year', 'Value']
-    df['Value'] = df['Value']/(10**9)
-    df['Series'] = 'Annual GDP, current USD bn'
-    now = datetime.now()
-    current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    df['Retrieved on'] = current_time
-    df.to_csv(outout, encoding='utf-16')
-    return df
+def get_gdp_ua(source='https://api.db.nomics.world/v22/series/WB/WDI/A-NY.GDP.MKTP.CD-UKR.csv', output=f'{TARGET_FOLDER}/tf_gdp_ua.csv'):
+    try:
+        df = pd.read_csv(source)
+        df.columns = ['Year', 'Value']
+        df['Value'] = df['Value']/(10**9)
+        df['Series'] = 'Annual GDP, current USD bn'
+        now = datetime.now()
+        current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+        df['Retrieved on'] = current_time
+        df.to_csv(output, encoding='utf-16')
+        return df
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
+
 
 # --- YAHOO FINANCE
 def get_yf_instrument(instrument, alias, type, start_date, end_date):
@@ -108,16 +116,20 @@ def get_yf_instrument(instrument, alias, type, start_date, end_date):
         df = df[["date", "type", "instrument", "value"]]
         return df
     except Exception as e:
-        logging.warning("Unable to retrieve the currency pair {fx}", exc_info=True)   
+        logging.error("Unable to retrieve the currency pair {fx}", exc_info=True)   
 
 def get_yf_data(currency_list=INSTRUMENT_LIST, output = f'{TARGET_FOLDER}/tf_yf_data.csv', start_date = START_DATE, end_date = END_DATE):
-    length = len(currency_list['code'])
-    df = pd.DataFrame()
-    for c in range(0,length):
-        df_temp = get_yf_instrument(currency_list['code'][c], currency_list['label'][c], currency_list['type'][c], start_date, end_date)
-        df = df.append(df_temp)   
-    df.to_csv(output, index=False, encoding = 'utf-16')
-    log_data_transform(output=output)
+    try:
+        length = len(currency_list['code'])
+        df = pd.DataFrame()
+        for c in range(0,length):
+            df_temp = get_yf_instrument(currency_list['code'][c], currency_list['label'][c], currency_list['type'][c], start_date, end_date)
+            df = df.append(df_temp)   
+        df.to_csv(output, index=False, encoding = 'utf-16')
+        log_data_transform(output=output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
+
 
 def plot_ccy_data(source = f'{TARGET_FOLDER}/tf_yf_data.csv', instrument = 'UAH/USD', title = 'FX rate', retrieved_from='Yahoo Finance'):
     df = pd.read_csv(source,  encoding = 'utf-16')
@@ -177,15 +189,19 @@ def get_ua_data(source = f'{TARGET_FOLDER}/{DATA_SOURCES}', output = TARGET_FOLD
 
 # --- GRAIN FUNCTIONS
 def transform_grain_data(source = f'{TARGET_FOLDER}/src_grain_destinations.csv', output=f'{TARGET_FOLDER}/tf_grain_destinations.csv'):
-    df = pd.read_csv(source, thousands=r',', encoding='utf-16')
-    df['Income group'] = df['Income group'].fillna('mixed')
-    df = df[['Country', 'Income group', 'Tonnage']]
-    df = df.groupby(['Country', 'Income group']).sum('Tonnage')
-    df = df.sort_values(by=['Tonnage'], ascending=False)
-    df = df.reset_index()
-    df.columns = ['Country', 'Income group', 'Tons received']
-    df.to_csv(output, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, thousands=r',', encoding='utf-16')
+        df['Income group'] = df['Income group'].fillna('mixed')
+        df = df[['Country', 'Income group', 'Tonnage']]
+        df = df.groupby(['Country', 'Income group']).sum('Tonnage')
+        df = df.sort_values(by=['Tonnage'], ascending=False)
+        df = df.reset_index()
+        df.columns = ['Country', 'Income group', 'Tons received']
+        df.to_csv(output, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not transform {output}. Error: {e}')
+
 
 def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv', title ='Grain delivered under grain deal', retrieved_from='WFO | HDX'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -200,13 +216,17 @@ def plot_grain_destinations(source=f'{TARGET_FOLDER}/tf_grain_destinations.csv',
 
 # --- HUMANITARIAN DATA
 def transform_hum_data(source = f'{TARGET_FOLDER}/src_hum_data.csv', output=f'{TARGET_FOLDER}/tf_hum_data.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    df = df[df.iloc[:, 0] != '#population+total']
-    df = df[['People Affected(Flash Appeal)', 'IDPs', 'Refugees(UNHCR)', 'Civilian casualities(OHCHR) - Killed', 'Civilian casualities(OHCHR) - Injured', 'Attacks on Education Facilities', 'Attacks on Health Care', 'Date']]
-    df.columns = ['People affected', 'Internally Displaced', 'Refugees', 'Civilian deaths, confirmed', 'Civilians injured, confirmed', 'Attacks on Education Facilities', 'Attacks on Health Care', 'Date']
-    df = df.fillna(method='ffill')
-    df.to_csv(output, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        df = df[df.iloc[:, 0] != '#population+total']
+        df = df[['People Affected(Flash Appeal)', 'IDPs', 'Refugees(UNHCR)', 'Civilian casualities(OHCHR) - Killed', 'Civilian casualities(OHCHR) - Injured', 'Attacks on Education Facilities', 'Attacks on Health Care', 'Date']]
+        df.columns = ['People affected', 'Internally Displaced', 'Refugees', 'Civilian deaths, confirmed', 'Civilians injured, confirmed', 'Attacks on Education Facilities', 'Attacks on Health Care', 'Date']
+        df = df.fillna(method='ffill')
+        df.to_csv(output, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
+
 
 def plot_hum_data(source=f'{TARGET_FOLDER}/tf_hum_data.csv', series = 'Refugees', title = 'Refugee count', retrieved_from='UNHCR | HDX'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -216,9 +236,12 @@ def plot_hum_data(source=f'{TARGET_FOLDER}/tf_hum_data.csv', series = 'Refugees'
 
 # --- RECONSTRUCTION & DAMAGE & REGIONS
 def transform_reconstruction_sectors(source=f'{TARGET_FOLDER}/src_reconstruction_sectors.csv' ,  output=f'{TARGET_FOLDER}/tf_reconstruction_sectors.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    df.to_csv(output, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        df.to_csv(output, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_reconstruction_sectors(source=f'{TARGET_FOLDER}/tf_reconstruction_sectors.csv', series = 'Damage', title = 'Damage assessment as of August 2022', retrieved_from='World Bank (2022)'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -229,10 +252,13 @@ def plot_reconstruction_sectors(source=f'{TARGET_FOLDER}/tf_reconstruction_secto
     return fig
 
 def transform_reconstruction_regions(source=f'{TARGET_FOLDER}/src_reconstruction_regions.csv' ,  output=f'{TARGET_FOLDER}/tf_reconstruction_regions.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    df = df[df['Oblast'].isin(['Support regions, subtotal','Backline regions, subtotal','Regions where government has regained control, subtotal'])!=True]
-    df.to_csv(output, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        df = df[df['Oblast'].isin(['Support regions, subtotal','Backline regions, subtotal','Regions where government has regained control, subtotal'])!=True]
+        df.to_csv(output, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regions.csv', title = 'Damage by regions as of August 2022', retrieved_from='World Bank (2022)'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -248,32 +274,35 @@ def plot_reconstruction_regions(source=f'{TARGET_FOLDER}/tf_reconstruction_regio
 
 # --- UKRAINE SUPPORT
 def transform_support_data(source=f'{TARGET_FOLDER}/src_ukraine_support.csv' ,  output=f'{TARGET_FOLDER}/tf_ukraine_support.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    df = df[['Countries',	
-        'Announcement Date',	
-        'Type of Aid General',
-        'Value Committed (own estimate, in USD)',	
-        'Value Delivered (own estimate, in USD)',	
-        'Converted Value in EUR',
-        'Total monetary value delivered in EUR', 
-        'retrieved']]
-    df = df.replace('.', np.nan)
-    df['Value committed'] = df['Converted Value in EUR']
-    # df.loc[df['Value committed'].isna() == True, 'Value committed'] = df['Value committed (own estimate, in USD)']
-    df['Value delivered'] = df['Total monetary value delivered in EUR']
-    # df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = df['Value delivered (own estimate, in USD)']
-    # df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = 0
-    df = df[(df['Value committed'] != 'No price')]
-    df = df[(df['Value delivered'] != 'No price')]
-    df['Value committed'] = df['Value committed'].astype(float) / 10**9 #bn USD
-    df['Value delivered'] = df['Value delivered'].astype(float) / 10**9 #bn USD
-    df = df.groupby(['Countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'}).reset_index()
-    df['Ratio: Delivered to committed'] = df['Value delivered']/df['Value committed']
-    df.rename(columns={'Countries': 'countries'}, inplace=True)
-    df.columns = ['countries', 'Type of Aid General', 'retrieved', 'Value committed', 'Value delivered', 'Ratio: Delivered to committed']
-    df = df.reset_index()
-    df.to_csv(output, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        df = df[['Countries',	
+            'Announcement Date',	
+            'Type of Aid General',
+            'Value Committed (own estimate, in USD)',	
+            'Value Delivered (own estimate, in USD)',	
+            'Converted Value in EUR',
+            'Total monetary value delivered in EUR', 
+            'retrieved']]
+        df = df.replace('.', np.nan)
+        df['Value committed'] = df['Converted Value in EUR']
+        # df.loc[df['Value committed'].isna() == True, 'Value committed'] = df['Value committed (own estimate, in USD)']
+        df['Value delivered'] = df['Total monetary value delivered in EUR']
+        # df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = df['Value delivered (own estimate, in USD)']
+        # df.loc[df['Value delivered'].isna() == True, 'Value delivered'] = 0
+        df = df[(df['Value committed'] != 'No price')]
+        df = df[(df['Value delivered'] != 'No price')]
+        df['Value committed'] = df['Value committed'].astype(float) / 10**9 #bn USD
+        df['Value delivered'] = df['Value delivered'].astype(float) / 10**9 #bn USD
+        df = df.groupby(['Countries', 'Type of Aid General', 'retrieved']).agg({'Value committed':'sum','Value delivered':'sum'}).reset_index()
+        df['Ratio: Delivered to committed'] = df['Value delivered']/df['Value committed']
+        df.rename(columns={'Countries': 'countries'}, inplace=True)
+        df.columns = ['countries', 'Type of Aid General', 'retrieved', 'Value committed', 'Value delivered', 'Ratio: Delivered to committed']
+        df = df.reset_index()
+        df.to_csv(output, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_ukraine_support(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', series = 'Value committed', title='Public commitment to support Ukraine (both cash and kind)', retrieved_from='IFW Kiel'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -308,35 +337,41 @@ def plot_delivery_rate(source=f'{TARGET_FOLDER}/tf_ukraine_support.csv', title =
 
 # --- FISCAL AND FINANCIAL DATA
 def clean_fiscal_data(df_source, source_file, sheet_labels):
-    df = df_source
-    df_labels = pd.read_excel(source_file, sheet_name=sheet_labels)
-    
-    # Add labels
-    df_labels = pd.read_excel(source_file, sheet_name = sheet_labels)
-    df = pd.concat([df, df_labels], axis=1)
+    try:
+        df = df_source
+        df_labels = pd.read_excel(source_file, sheet_name=sheet_labels)
+        
+        # Add labels
+        df_labels = pd.read_excel(source_file, sheet_name = sheet_labels)
+        df = pd.concat([df, df_labels], axis=1)
 
-    # Clean-up
-    df = df[df['active']==1]
-    df = df.dropna(how='all', axis=1)
-    df = df.iloc[:,-6:]
-    last_date = list(df)[0]
-    df['date'] = last_date[:11]
-    df.columns = ['Value', 'Retrieve date', 'Item', 'Code', 'Active', 'Total', 'Date']
+        # Clean-up
+        df = df[df['active']==1]
+        df = df.dropna(how='all', axis=1)
+        df = df.iloc[:,-6:]
+        last_date = list(df)[0]
+        df['date'] = last_date[:11]
+        df.columns = ['Value', 'Retrieve date', 'Item', 'Code', 'Active', 'Total', 'Date']
 
-    # Calculate shares
-    df['Value'] = pd.to_numeric(df['Value'], errors='coerce')
-    total_value = df[df['Total']==1]['Value'].to_list()[0]
-    df['Share'] = df['Value']/total_value
-    df = df[df['Total']==0]
-    df = df.drop(['Total'], axis=1)
-    return df
+        # Calculate shares
+        df['Value'] = pd.to_numeric(df['Value'], errors='coerce')
+        total_value = df[df['Total']==1]['Value'].to_list()[0]
+        df['Share'] = df['Value']/total_value
+        df = df[df['Total']==0]
+        df = df.drop(['Total'], axis=1)
+        return df
+    except Exception as e:
+        logging.error(f'Could not clean fiscal data. Error: {e}')
 
 def transform_fiscal_income(source=f'{TARGET_FOLDER}/src_fiscal_income.csv' ,  output=f'{TARGET_FOLDER}/tf_fiscal_income.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_income')
-    df = df.reset_index()
-    df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_income')
+        df = df.reset_index()
+        df.to_csv(output, index=False, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_fiscal_income(source=f'{TARGET_FOLDER}/tf_fiscal_income.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -352,11 +387,15 @@ def plot_fiscal_income(source=f'{TARGET_FOLDER}/tf_fiscal_income.csv', retrieved
     return fig
 
 def transform_fiscal_expenses(source=f'{TARGET_FOLDER}/src_fiscal_expenses.csv' ,  output=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_expenses')
-    df = df.reset_index()
-    df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_expenses')
+        df = df.reset_index()
+        df.to_csv(output, index=False, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
+
 
 def plot_fiscal_expenses(source=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -372,11 +411,14 @@ def plot_fiscal_expenses(source=f'{TARGET_FOLDER}/tf_fiscal_expenses.csv', retri
     return fig
 
 def transform_fiscal_finance(source=f'{TARGET_FOLDER}/src_fiscal_finance.csv' ,  output=f'{TARGET_FOLDER}/tf_fiscal_finance.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_finance')
-    df = df.reset_index()
-    df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        df = clean_fiscal_data(df, f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_labels='labels_fiscal_finance')
+        df = df.reset_index()
+        df.to_csv(output, index=False, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_fiscal_finance(source=f'{TARGET_FOLDER}/tf_fiscal_finance.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -392,38 +434,45 @@ def plot_fiscal_finance(source=f'{TARGET_FOLDER}/tf_fiscal_finance.csv', retriev
     return fig
 
 def transform_cpi_headline(source=f'{TARGET_FOLDER}/src_cpi_headline.csv',  output_last=f'{TARGET_FOLDER}/tf_cpi_last.csv', output_12m=f'{TARGET_FOLDER}/tf_cpi_12m.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
 
-    # Add labels
-    df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_cpi_headline')
-    df = pd.concat([df, df_labels], axis=1)
-    df = df.dropna(how='all', axis=1)
-    
-    # Export the last inflation
-    # Clean-up
-    df_last = df.iloc[:,-4:]
-    df_last = df_last.dropna()
-    last_date = list(df_last)[0]
-    df_last['date'] = last_date[:11]
-    df_last.columns = ['Value', 'Retrieve date', 'Item', 'Total', 'Date']
-    df_last = df_last.reset_index()
-    df_last.to_csv(output_last, index=False, encoding='utf-16')
-    log_data_transform(output_last)
+        # Add labels
+        df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_cpi_headline')
+        df = pd.concat([df, df_labels], axis=1)
+        df = df.dropna(how='all', axis=1)
+        
+        # Export the last inflation
+        # Clean-up
+        df_last = df.iloc[:,-4:]
+        df_last = df_last.dropna()
+        last_date = list(df_last)[0]
+        df_last['date'] = last_date[:11]
+        df_last.columns = ['Value', 'Retrieve date', 'Item', 'Total', 'Date']
+        df_last = df_last.reset_index()
+        df_last.to_csv(output_last, index=False, encoding='utf-16')
+        log_data_transform(output_last)
+    except Exception as e:
+        logging.error(f'Could not get {output_last}. Error: {e}')
 
-    # Export the 12m inflation
-    # Clean-up
-    select_label = 'Inflation, yoy'
-    df_12m = df.iloc[:,-15:]
-    df_12m = df_12m[df['column_name']==select_label]
-    retrieved = df_12m['retrieved'].iloc[0]
-    df_12m = df_12m.drop(['retrieved', 'total', 'column_name'], axis=1)
-    df_12m = df_12m.T
-    df_12m.columns = [select_label]
-    df_12m['Date'] = df_12m.index
-    df_12m['Retrieved'] = retrieved
-    df_12m = df_12m.reset_index()
-    df_12m.to_csv(output_12m, index=False, encoding='utf-16')
-    log_data_transform(output_12m)
+    try:
+        # Export the 12m inflation
+        # Clean-up
+        select_label = 'Inflation, yoy'
+        df_12m = df.iloc[:,-15:]
+        df_12m = df_12m[df['column_name']==select_label]
+        retrieved = df_12m['retrieved'].iloc[0]
+        df_12m = df_12m.drop(['retrieved', 'total', 'column_name'], axis=1)
+        df_12m = df_12m.T
+        df_12m.columns = [select_label]
+        df_12m['Date'] = df_12m.index
+        df_12m['Retrieved'] = retrieved
+        df_12m = df_12m.reset_index()
+        df_12m.to_csv(output_12m, index=False, encoding='utf-16')
+        log_data_transform(output_12m)
+    except Exception as e:
+        logging.error(f'Could not get {output_12m}. Error: {e}')
+
 
 def plot_cpi_last(source=f'{TARGET_FOLDER}/tf_cpi_last.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -455,25 +504,29 @@ def plot_cpi_12m(source=f'{TARGET_FOLDER}/tf_cpi_12m.csv', series = 'Inflation, 
     return fig
 
 def transform_international_reserves(source=f'{TARGET_FOLDER}/src_international_reserves.csv' ,  output=f'{TARGET_FOLDER}/tf_international_reserves.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    
-    # Add labels
-    df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_international_reserves')
-    df = pd.concat([df, df_labels], axis=1)
-    # Clean-up
-    df = df.dropna(how='all', axis=1)
-    df = df.iloc[:,-4:]
-    df = df.dropna()
-    last_date = list(df)[0]
-    last_date = re.sub(r"\d+", "", last_date)
-    df['date'] = last_date[:11]
-    df.columns = ['Value', 'Retrieve date', 'Item', 'Total', 'Date']
-    df = df.reset_index()
-    df['Value'] = pd.to_numeric(df['Value'], errors='coerce')/1000
-    reserves_total = df[df['Total']==True]['Value'].to_list()[0]
-    df['Share'] = round(df['Value'] / reserves_total, 2)*100
-    df.to_csv(output, index=False, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        
+        # Add labels
+        df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_international_reserves')
+        df = pd.concat([df, df_labels], axis=1)
+        # Clean-up
+        df = df.dropna(how='all', axis=1)
+        df = df.iloc[:,-4:]
+        df = df.dropna()
+        last_date = list(df)[0]
+        last_date = re.sub(r"\d+", "", last_date)
+        df['date'] = last_date[:11]
+        df.columns = ['Value', 'Retrieve date', 'Item', 'Total', 'Date']
+        df = df.reset_index()
+        df['Value'] = pd.to_numeric(df['Value'], errors='coerce')/1000
+        reserves_total = df[df['Total']==True]['Value'].to_list()[0]
+        df['Share'] = round(df['Value'] / reserves_total, 2)*100
+        df.to_csv(output, index=False, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
+
 
 def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserves.csv', title = 'International reserves, bn USD', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -492,21 +545,24 @@ def plot_international_reserves(source=f'{TARGET_FOLDER}/tf_international_reserv
     return fig
 
 def transform_bond_yields(source=f'{TARGET_FOLDER}/src_bond_yields.csv', output=f'{TARGET_FOLDER}/tf_bond_yields.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    # Add labels
-    df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_bond_yields')
-    df_labels['index'] = df_labels.index
-    df_column_list = df_labels['column_name'].to_list()
-    df_column_list.append('Retrieved on')
-    df.columns = df_column_list
-    
-    # Drop unneccessary columns
-    drop_columns = df_labels['index'][df_labels['active']==0]
-    df = df.drop(df.columns[drop_columns], axis = 1)
-    df = df.dropna(how='any', axis=0)
-    df = df.reset_index()
-    df.to_csv(output, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        # Add labels
+        df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_bond_yields')
+        df_labels['index'] = df_labels.index
+        df_column_list = df_labels['column_name'].to_list()
+        df_column_list.append('Retrieved on')
+        df.columns = df_column_list
+        
+        # Drop unneccessary columns
+        drop_columns = df_labels['index'][df_labels['active']==0]
+        df = df.drop(df.columns[drop_columns], axis = 1)
+        df = df.dropna(how='any', axis=0)
+        df = df.reset_index()
+        df.to_csv(output, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_bond_yields(source=f'{TARGET_FOLDER}/tf_bond_yields.csv', title = "Bond Placements and Their Yields, UAH mn", retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -527,21 +583,24 @@ def plot_bond_yields(source=f'{TARGET_FOLDER}/tf_bond_yields.csv', title = "Bond
     return fig
 
 def transform_policy_rate(source=f'{TARGET_FOLDER}/src_policy_rate.csv' ,  output=f'{TARGET_FOLDER}/tf_policy_rate.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    # Add labels
-    df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_policy_rate')
-    df_labels['index'] = df_labels.index
-    df_column_list = df_labels['column_name'].to_list()
-    df_column_list.append('Retrieved on')
-    df.columns = df_column_list
-    
-    # Drop unneccessary columns
-    drop_columns = df_labels['index'][df_labels['active']==0]
-    df = df.drop(df.columns[drop_columns], axis = 1)
-    df = df.dropna(how='any', axis=0)
-    df = df.reset_index()
-    df.to_csv(output, encoding='utf-16')
-    log_data_transform(output)
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        # Add labels
+        df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_policy_rate')
+        df_labels['index'] = df_labels.index
+        df_column_list = df_labels['column_name'].to_list()
+        df_column_list.append('Retrieved on')
+        df.columns = df_column_list
+        
+        # Drop unneccessary columns
+        drop_columns = df_labels['index'][df_labels['active']==0]
+        df = df.drop(df.columns[drop_columns], axis = 1)
+        df = df.dropna(how='any', axis=0)
+        df = df.reset_index()
+        df.to_csv(output, encoding='utf-16')
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_policy_rate(source=f'{TARGET_FOLDER}/tf_policy_rate.csv', title = "Policy rate dynamics, %", retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -560,30 +619,33 @@ def plot_policy_rate(source=f'{TARGET_FOLDER}/tf_policy_rate.csv', title = "Poli
     return fig
 
 def transform_interest_rates(source=f'{TARGET_FOLDER}/src_interest_rates.csv' ,  output=f'{TARGET_FOLDER}/tf_interest_rates.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
-    # Add labels
-    df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_interest_rates')
-    df_labels['index'] = df_labels.index
-    df_column_list = df_labels['column_name'].to_list()
-    df_column_list.append('Retrieved on')
-    df.columns = df_column_list
-    
-    # Drop unneccessary columns
-    drop_columns = df_labels['index'][df_labels['active']==0]
-    df = df.drop(df.columns[drop_columns], axis = 1)
-    df = df[(df['Region'] != 'including') & (df['Region'] != 'including by currencies')]  # Drops rates by maturities
-    df = df.dropna(how='any', axis=0)
-    df = df.reset_index()
-    df = df.drop(['index'], axis=1)
-    
-    # Convert all columns to numeric except for calculations
-    cols = df.columns.drop(['Region', 'Retrieved on'])
-    df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
-    df['Spread: households to non-financial corporations'] = df['Nationals: households'] - df['Nationals: non-financial corporations']
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
+        # Add labels
+        df_labels = pd.read_excel(f'{TARGET_FOLDER}/{DATA_SOURCES}', sheet_name = 'labels_interest_rates')
+        df_labels['index'] = df_labels.index
+        df_column_list = df_labels['column_name'].to_list()
+        df_column_list.append('Retrieved on')
+        df.columns = df_column_list
+        
+        # Drop unneccessary columns
+        drop_columns = df_labels['index'][df_labels['active']==0]
+        df = df.drop(df.columns[drop_columns], axis = 1)
+        df = df[(df['Region'] != 'including') & (df['Region'] != 'including by currencies')]  # Drops rates by maturities
+        df = df.dropna(how='any', axis=0)
+        df = df.reset_index()
+        df = df.drop(['index'], axis=1)
+        
+        # Convert all columns to numeric except for calculations
+        cols = df.columns.drop(['Region', 'Retrieved on'])
+        df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
+        df['Spread: households to non-financial corporations'] = df['Nationals: households'] - df['Nationals: non-financial corporations']
 
-    #Export
-    df.to_csv(output, encoding='utf-16', index=False)
-    log_data_transform(output)
+        #Export
+        df.to_csv(output, encoding='utf-16', index=False)
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_interest_rates(source=f'{TARGET_FOLDER}/tf_interest_rates.csv', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16')
@@ -600,50 +662,53 @@ def plot_interest_rates(source=f'{TARGET_FOLDER}/tf_interest_rates.csv', retriev
     return fig
 
 def transform_financial_soundness(source=f'{TARGET_FOLDER}/src_financial_soundness.csv' ,  output=f'{TARGET_FOLDER}/tf_financial_soundness.csv'):
-    df = pd.read_csv(source, encoding='utf-16')
+    try:
+        df = pd.read_csv(source, encoding='utf-16')
 
-    # Assign labels
-    column_list = df.iloc[0,:].to_list()
-    column_list[-1] = 'Retrieved on'
-    column_list[0] = 'Code'
-    column_list[1] = 'Item'
-    column_list = [str(col).split('/', 1)[0] for col in column_list]
-    column_list = [str(col).split(' ', 1)[0] for col in column_list]
-    column_list = [col.rstrip('\n') for col in column_list]
-    column_list = ['Y' + col if col[:2]=='20' else col for col in column_list]
-    df.columns = column_list
-    
-    # Clean data
-    df = df[df['Code'].isna()==False]
-    item_list = [
-        'Regulatory capital to risk-weighted assets1', 
-        'Regulatory Tier 1 capital to risk-weighted assets1', 
-        'Nonperforming loans2 net of provisions to capital ', 
-        'Nonperforming loans to total gross loans2', 
-        'Liquid assets6 to total assets', 
-        'Liquid assets7 to short-term liabilities', 
-        'Net open position in foreign exchange to capital 12', 
-        'Large exposures to capital', 
-        'Spread between reference lending and deposit rates (basis points)', 
-        'Spread between highest and lowest interbank rates (basis points)', 
-        'Foreign-currency-denominated loans to total loans', 
-        'Foreign-currency-denominated liabilities to total liabilities'
-        ] 
-    df = df[df['Item'].isin(item_list)]
-    df['Item'] = [re.sub(r"\d+", "", item) for item in df['Item'].to_list()]
-    df['Item'] = [item.rstrip() for item in df['Item'].to_list()]
-    retrieved = df['Retrieved'].iloc[0]
-    df = df.drop(['Code', 'Consoli-dation', 'Retrieved'], axis=1)
-    column_list_t = df['Item'].to_list()
-    df = df.T
-    df.columns = column_list_t
-    df = df[df['Regulatory capital to risk-weighted assets']!='Regulatory capital to risk-weighted assets']
-    column_list_num = df.columns
-    df[column_list_num] = df[column_list_num].apply(pd.to_numeric, errors='coerce')
-    df['Retrieved'] = retrieved
-    df = df.reset_index()
-    df.to_csv(output, encoding='utf-16', index=False)
-    log_data_transform(output)
+        # Assign labels
+        column_list = df.iloc[0,:].to_list()
+        column_list[-1] = 'Retrieved on'
+        column_list[0] = 'Code'
+        column_list[1] = 'Item'
+        column_list = [str(col).split('/', 1)[0] for col in column_list]
+        column_list = [str(col).split(' ', 1)[0] for col in column_list]
+        column_list = [col.rstrip('\n') for col in column_list]
+        column_list = ['Y' + col if col[:2]=='20' else col for col in column_list]
+        df.columns = column_list
+        
+        # Clean data
+        df = df[df['Code'].isna()==False]
+        item_list = [
+            'Regulatory capital to risk-weighted assets1', 
+            'Regulatory Tier 1 capital to risk-weighted assets1', 
+            'Nonperforming loans2 net of provisions to capital ', 
+            'Nonperforming loans to total gross loans2', 
+            'Liquid assets6 to total assets', 
+            'Liquid assets7 to short-term liabilities', 
+            'Net open position in foreign exchange to capital 12', 
+            'Large exposures to capital', 
+            'Spread between reference lending and deposit rates (basis points)', 
+            'Spread between highest and lowest interbank rates (basis points)', 
+            'Foreign-currency-denominated loans to total loans', 
+            'Foreign-currency-denominated liabilities to total liabilities'
+            ] 
+        df = df[df['Item'].isin(item_list)]
+        df['Item'] = [re.sub(r"\d+", "", item) for item in df['Item'].to_list()]
+        df['Item'] = [item.rstrip() for item in df['Item'].to_list()]
+        retrieved = df['Retrieved'].iloc[0]
+        df = df.drop(['Code', 'Consoli-dation', 'Retrieved'], axis=1)
+        column_list_t = df['Item'].to_list()
+        df = df.T
+        df.columns = column_list_t
+        df = df[df['Regulatory capital to risk-weighted assets']!='Regulatory capital to risk-weighted assets']
+        column_list_num = df.columns
+        df[column_list_num] = df[column_list_num].apply(pd.to_numeric, errors='coerce')
+        df['Retrieved'] = retrieved
+        df = df.reset_index()
+        df.to_csv(output, encoding='utf-16', index=False)
+        log_data_transform(output)
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv', series='Nonperforming loans to total gross loans', retrieved_from='National Bank of Ukraine'):
     df = pd.read_csv(source, encoding='utf-16', index_col='index')
@@ -672,32 +737,38 @@ def plot_financial_soundness(source=f'{TARGET_FOLDER}/tf_financial_soundness.csv
 
 # --- ACLED DATA WITH FATALITIES
 def get_fatalities(source = 'https://acleddata.com/download/38560/?tmstv=1673161723', output = f'{TARGET_FOLDER}/src_fatalities.csv.gz', sheet_name = 0, storage_options=STORAGE_OPTIONS):
-    df = pd.read_excel(source,  sheet_name=sheet_name, storage_options=storage_options)
-    now = datetime.now()
-    current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    df['retrieved'] = current_time
-    df.to_csv(output, index=False, encoding = 'utf-16', compression='gzip')
-    print(f"Data for fatalities retrieved at {current_time}") 
+    try:
+        df = pd.read_excel(source,  sheet_name=sheet_name, storage_options=storage_options)
+        now = datetime.now()
+        current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+        df['retrieved'] = current_time
+        df.to_csv(output, index=False, encoding = 'utf-16', compression='gzip')
+        print(f"Data for fatalities retrieved at {current_time}") 
+    except Exception as e:
+        logging.error(f'Could not get {output}. Error: {e}')
 
 def transform_fatalities(source = f'{TARGET_FOLDER}/src_fatalities.csv.gz', output_geo = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', output_fatalities = f'{TARGET_FOLDER}/tf_fatalities_series.csv'):
-    df = pd.read_csv(source,  encoding = 'utf-16', compression='gzip')
-    df = df[df['EVENT_DATE'] > '2022-02-23']
-    df['DATE'] = pd.to_datetime(df['EVENT_DATE'], format='%Y-%m-%d')
-    df['WEEK'] = df['DATE'].dt.isocalendar().week.astype('str')
-    df['MONTH'] = df['DATE'].dt.month.astype('str')
-    df['YEAR'] = df['DATE'].dt.year.astype('str')
-    df['WEEK_DATE'] = df['YEAR'] + '-' + df['WEEK']
-    df['MONTH_DATE'] = df['YEAR'] + '-' + df['MONTH']
-    df['SIZE'] = 10 + df['FATALITIES'] * 1
-    df['COUNT'] = 1
-    df = df.reset_index()
-    df_geo = df
-    df_geo.to_csv(output_geo, encoding='utf-16', index=False, compression="gzip")
-    df_fatalities = df.groupby(['MONTH_DATE', 'ACTOR1', 'EVENT_TYPE'])['FATALITIES'].sum()
-    df_fatalities = df.reset_index()
-    df_fatalities.to_csv(output_fatalities, encoding='utf-16')
-    log_data_transform(output_geo)
-    log_data_transform(output_fatalities)
+    try:
+        df = pd.read_csv(source,  encoding = 'utf-16', compression='gzip')
+        df = df[df['EVENT_DATE'] > '2022-02-23']
+        df['DATE'] = pd.to_datetime(df['EVENT_DATE'], format='%Y-%m-%d')
+        df['WEEK'] = df['DATE'].dt.isocalendar().week.astype('str')
+        df['MONTH'] = df['DATE'].dt.month.astype('str')
+        df['YEAR'] = df['DATE'].dt.year.astype('str')
+        df['WEEK_DATE'] = df['YEAR'] + '-' + df['WEEK']
+        df['MONTH_DATE'] = df['YEAR'] + '-' + df['MONTH']
+        df['SIZE'] = 10 + df['FATALITIES'] * 1
+        df['COUNT'] = 1
+        df = df.reset_index()
+        df_geo = df
+        df_geo.to_csv(output_geo, encoding='utf-16', index=False, compression="gzip")
+        df_fatalities = df.groupby(['MONTH_DATE', 'ACTOR1', 'EVENT_TYPE'])['FATALITIES'].sum()
+        df_fatalities = df.reset_index()
+        df_fatalities.to_csv(output_fatalities, encoding='utf-16')
+        log_data_transform(output_geo)
+        log_data_transform(output_fatalities)
+    except Exception as e:
+        logging.error(f'Could not get {output_geo} and {output_fatalities}. Error: {e}')
 
 def plot_fatalities_geo(source = f'{TARGET_FOLDER}/tf_fatalities_geo.csv.gz', mapbox_token = TOKEN, title='Conflict events, daily', retrieved_from='ACLED'):
     df = pd.read_csv(source,  encoding = 'utf-16', compression = 'gzip')

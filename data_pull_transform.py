@@ -77,8 +77,8 @@ def get_google_news(lang='en', region='US', search_topic='Ukraine', output=f'{TA
     except Exception as e:
         logging.error(f'Could not get {output}. Error: {e}')
 
-
-def plot_google_news(df = pd.DataFrame):
+def plot_google_news(source = f'{TARGET_FOLDER}/tf_google_news.csv'):
+    df = pd.read_csv(source)
     tab = go.Figure(data=[go.Table(
     header=dict(values=list(df.columns),
                 #fill_color='paleturquoise',

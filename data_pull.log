@@ -3314,3 +3314,8 @@ INFO:root:Loaded texts
 INFO:root:Loaded metrics
 INFO:root:assets/tf_google_news.csv stored successfully: 03/10/2024, 22:06:01
 INFO:root:Loaded news
+ERROR:root:Could not export Mapbox token 'MAPBOX_TOKEN'
+INFO:root:Loaded texts
+INFO:root:Loaded metrics
+INFO:root:assets/tf_google_news.csv stored successfully: 03/10/2024, 22:08:50
+INFO:root:Loaded news

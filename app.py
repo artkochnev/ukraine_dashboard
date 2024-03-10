@@ -107,7 +107,7 @@ def main():
     df_news = read_news()
 
     # --- LOAD TABLES
-    tab_google_news = dp.plot_google_news(df_news)
+    tab_google_news = dp.plot_google_news()
 
     # --- LOAD FIGURES
     fig_ccy = dp.plot_ccy_data()

@@ -99,7 +99,7 @@ def get_metric(df, title, value_col, title_col = 'Title', unit='default', digits
     return value
 
 def main():
-    st.experimental_singleton.clear()
+    st.cache_resource()
 
     # --- LOAD DATA
     df_t = read_texts()
@@ -107,7 +107,7 @@ def main():
     df_news = read_news()
 
     # --- LOAD TABLES
-    # tab_google_news = dp.plot_google_news(df_news)
+    tab_google_news = dp.plot_google_news(df_news)
 
     # --- LOAD FIGURES
     fig_ccy = dp.plot_ccy_data()
@@ -120,7 +120,7 @@ def main():
     fig_reconstruction_regions = dp.plot_reconstruction_regions()
     fig_ukraine_support_committed = dp.plot_ukraine_support(series='Value committed', title = 'Support publicly announced, USD bn')
     fig_ukraine_support_delivered = dp.plot_ukraine_support(series='Value delivered', title = 'Support delivered in cash and kind, USD bn')
-    fig_grain_destinations = dp.plot_grain_destinations()
+    # fig_grain_destinations = dp.plot_grain_destinations()
     fig_delivery_rate = dp.plot_delivery_rate()
     fig_cpi_last = dp.plot_cpi_last()
     fig_cpi_12m = dp.plot_cpi_12m()
@@ -135,7 +135,7 @@ def main():
     fig_fsi_liquidity = dp.plot_financial_soundness(series='Liquid assets to total assets')
     fig_fatalities_count = dp.plot_fatalities_series(series = 'FATALITIES', title = 'Number of Fatalities')
     fig_battle_count = dp.plot_fatalities_series(series='COUNT', title = 'Number of conflict events')
-    fig_fatalities_geo = dp.plot_fatalities_geo()
+    # fig_fatalities_geo = dp.plot_fatalities_geo()
 
     # FINAL REPORT
     st.title('Humanitarian and Economic Situation in Ukraine')
@@ -185,35 +185,36 @@ def main():
     # st.markdown(df_news, unsafe_allow_html=True)
     st.write('')
     st.write('')
-    st.header("War and People")
+    # st.header("War and People")
     # Put key metrics
-    st.subheader('Conflict intensity')
-    m1, m2, m3 = st.columns(3)
-    m1.metric(
-        "Violence events", 
-        value = get_metric(df_m, 'Violence events', 'Last value', digits=3),
-        )
-    m2.metric(
-        "Explosions count", 
-        value = get_metric(df_m, 'Explosions count', 'Last value', digits=3),
-        )
-    m3.metric(
-        "Battle count", 
-        value = get_metric(df_m, 'Battle count', 'Last value', digits=3),
-        )
-    write_expander(df_t,title='Conflict intensity', expander_title='Conflict intensity')
-    st.plotly_chart(fig_fatalities_geo, use_container_height=800)
+    # st.subheader('Conflict intensity')
+    # m1, m2, m3 = st.columns(3)
+    # m1.metric(
+    #     "Violence events", 
+    #     value = get_metric(df_m, 'Violence events', 'Last value', digits=3),
+    #     )
+    # m2.metric(
+    #     "Explosions count", 
+    #     value = get_metric(df_m, 'Explosions count', 'Last value', digits=3),
+    #     )
+    # m3.metric(
+    #     "Battle count", 
+    #     value = get_metric(df_m, 'Battle count', 'Last value', digits=3),
+    #     )
+    # write_expander(df_t,title='Conflict intensity', expander_title='Conflict intensity')
+    # st.plotly_chart(fig_fatalities_geo, use_container_height=800)
     # st.components.v1.iframe(ACLED_APP, width=800, height=800, scrolling=True)
-    col1, col2 = st.columns(2)
-    col1.plotly_chart(fig_fatalities_count, use_container_height=600, use_container_width=300)
-    col2.plotly_chart(fig_battle_count, use_container_height=600, use_container_width=300)
-    st.markdown('---')
+    # col1, col2 = st.columns(2)
+    # col1.plotly_chart(fig_fatalities_count, use_container_height=600, use_container_width=300)
+    # col2.plotly_chart(fig_battle_count, use_container_height=600, use_container_width=300)
+    # st.markdown('---')
     st.subheader('Civilian casualties')
-    m1, m2, m3 = st.columns(3)
-    m1.metric(
-        "Fatalities, estimated", 
-        value = get_metric(df_m, 'Fatalities count', 'Last value', digits=3),
-        )
+    # m1, m2, m3 = st.columns(3)
+    m2, m3 = st.columns(2)
+    # m1.metric(
+    #     "Fatalities, estimated", 
+    #     value = get_metric(df_m, 'Fatalities count', 'Last value', digits=3),
+    #     )
     m2.metric(
         "Civilians killed, confirmed", 
         value = get_metric(df_m, 'Civilians killed, confirmed', 'Last value', digits=3),
@@ -365,19 +366,19 @@ def main():
 #   st.plotly_chart(fig_ukraine_support_committed, use_container_height=800, use_container_width=800)
     st.plotly_chart(fig_ukraine_support_delivered, use_container_height=800, use_container_width=300)
     st.plotly_chart(fig_delivery_rate)
-    st.markdown('---')
-    st.subheader('Grain deal')
-    m1, m2 = st.columns(2)
-    m1.metric(
-        'Grain sent (all), tons',
-        value = get_metric(df_m, 'Total amount delivered', 'Last value', digits=6)
-    )
-    m2.metric(
-        'Grain sent (high-income) countries, tons',
-        value = get_metric(df_m, 'Amount to high-income countries', 'Last value', digits=6)
-    )
-    write_expander(df_t,title='Grain deal', expander_title='Who gets the most of the grain deal')
-    st.plotly_chart(fig_grain_destinations)
+    # st.markdown('---')
+    # st.subheader('Grain deal')
+    # m1, m2 = st.columns(2)
+    # m1.metric(
+    #     'Grain sent (all), tons',
+    #     value = get_metric(df_m, 'Total amount delivered', 'Last value', digits=6)
+    # )
+    # m2.metric(
+    #     'Grain sent (high-income) countries, tons',
+    #     value = get_metric(df_m, 'Amount to high-income countries', 'Last value', digits=6)
+    # )
+    # write_expander(df_t,title='Grain deal', expander_title='Who gets the most of the grain deal')
+    # st.plotly_chart(fig_grain_destinations)
     st.markdown('---')
     st.header('War and reconstruction')
     # Put key metrics
@@ -401,8 +402,8 @@ def main():
     st.markdown('___')
     st.header('References')
     st.markdown(
+        # - ACLED. [Ukraine crisis hub](https://acleddata.com/ukraine-crisis/)
         """
-        - ACLED. [Ukraine crisis hub](https://acleddata.com/ukraine-crisis/)
         - International Organisation for Migration | IOM. [Ukraine Displacement](https://displacement.iom.int/ukraine)
         - Kiel Institute for the World Economy | IFW Kiel. [Ukraine support tracker](https://www.ifw-kiel.de/topics/war-against-ukraine/ukraine-support-tracker/)
         - National Bank of Ukraine | NBU. [Statistics at the National Bank of Ukraine](https://bank.gov.ua/en/statistic/nbustatistic)
